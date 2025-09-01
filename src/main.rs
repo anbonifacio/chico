@@ -3,6 +3,9 @@ use clap::Parser;
 use std::path::PathBuf;
 use std::process::Command;
 
+mod lexer;
+use crate::lexer::lexer::Lexer;
+
 #[derive(Parser)]
 struct Cli {
     input_file: PathBuf,
@@ -16,7 +19,7 @@ struct Cli {
     keep_generated: Option<bool>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum Stage {
     All,
     Lex,
@@ -24,7 +27,9 @@ enum Stage {
     Codegen,
 }
 
-fn main() {
+fn main() -> std::io::Result<()> {
+    env_logger::init();
+
     let cli = Cli::parse();
     let stage = if let Some(true) = cli.lex {
         Stage::Lex
@@ -40,6 +45,7 @@ fn main() {
     let assembled = cli.input_file.with_extension("s");
     let compiled = cli.input_file.with_extension("");
 
+    // Generate the preprocessed source file with gcc
     let preprocessed_status = Command::new("gcc")
         .args([
             "-E",
@@ -52,27 +58,42 @@ fn main() {
         .expect("Failed to run gcc");
 
     if !preprocessed_status.success() {
-        eprintln!("gcc preprocessing failed");
-        std::process::exit(1);
+        log::error!("gcc preprocessing failed");
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            "gcc preprocessing failed",
+        ));
     }
 
-    let assembled_status = Command::new("gcc")
-        .args([
-            preprocessed.to_str().unwrap(),
-            "-S",
-            "-O",
-            "-fno-asynchronous-unwind-tables",
-            "-fcf-protection=none",
-            "-o",
-            assembled.to_str().unwrap(),
-        ])
-        .status()
-        .expect("Failed to run gcc -S");
+    let mut lexer = Lexer::new(&preprocessed)?;
+    let tokens = lexer.tokenize()?;
+    log::debug!("Tokens: {:?}", tokens);
 
-    if !assembled_status.success() {
-        eprintln!("assembling failed");
-        std::process::exit(1);
+    if stage == Stage::Lex {
+        cleanup(cli, preprocessed, assembled);
+        return Ok(());
     }
+
+    // let assembled_status = Command::new("gcc")
+    //     .args([
+    //         preprocessed.to_str().unwrap(),
+    //         "-S",
+    //         "-O",
+    //         "-fno-asynchronous-unwind-tables",
+    //         "-fcf-protection=none",
+    //         "-o",
+    //         assembled.to_str().unwrap(),
+    //     ])
+    //     .status()
+    //     .expect("Failed to run gcc -S");
+
+    // if !assembled_status.success() {
+    //     eprintln!("assembling failed");
+    //     return Err(std::io::Error::new(
+    //         std::io::ErrorKind::Other,
+    //         "gcc assembling failed",
+    //     ));
+    // }
 
     let compiled_status = Command::new("gcc")
         .args([
@@ -84,10 +105,19 @@ fn main() {
         .expect("Failed to run gcc");
 
     if !compiled_status.success() {
-        eprintln!("compiling failed");
-        std::process::exit(1);
+        log::error!("compiling failed");
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            "gcc compilation failed",
+        ));
     }
 
+    cleanup(cli, preprocessed, assembled);
+
+    Ok(())
+}
+
+fn cleanup(cli: Cli, preprocessed: PathBuf, assembled: PathBuf) {
     if cli.keep_generated.is_none() {
         std::fs::remove_file(&preprocessed)
             .expect(&format!("Failed to remove {}", preprocessed.display()));
