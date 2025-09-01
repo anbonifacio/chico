@@ -2,7 +2,7 @@ use std::io::{BufRead, Read};
 use std::{fs::File, io::BufReader, path::PathBuf};
 
 use crate::lexer::PATTERNS;
-use crate::lexer::token::Token;
+use crate::lexer::token::{Token, TokenType};
 
 pub struct Lexer {
     reader: BufReader<File>,
@@ -21,11 +21,12 @@ impl Lexer {
             let mut position = 0;
 
             // trim whitespaces at beginning of line
-            let line = line?.trim_start().to_string();
+            let line = line?;
+            let trimmed_line = line.trim_start();
 
-            while position < line.len() {
+            while position < trimmed_line.len() {
                 // Skip whitespace
-                if line
+                if trimmed_line
                     .chars()
                     .nth(position)
                     .map_or(false, |c| c.is_whitespace())
@@ -34,7 +35,7 @@ impl Lexer {
                     continue;
                 }
 
-                if let Some(token) = find_match(&line, position) {
+                if let Some(token) = find_match(trimmed_line, position) {
                     position = token.end();
                     tokens.push(token);
                 } else {
@@ -56,24 +57,22 @@ fn find_match(line: &str, position: usize) -> Option<Token> {
     }
 
     let text = &line[position..];
-    let mut matches = Vec::new();
+    let mut best_match: Option<(usize, &str, usize, &TokenType)> = None;
+
     for (re, token_type) in PATTERNS.iter() {
         if let Some(matched) = re.find(text) {
             if matched.start() == 0 {
-                matches.push((
-                    matched.len(),
-                    matched.as_str(),
-                    matched.end(),
-                    token_type.clone(),
-                ));
+                let matched_len = matched.len();
+                if best_match.map_or(true, |(len, _, _, _)| matched_len > len) {
+                    best_match = Some((matched_len, matched.as_str(), matched.end(), token_type));
+                }
             }
         }
     }
-    matches.sort_by_key(|&(len, _, _, _)| std::cmp::Reverse(len));
 
-    matches.first().map(|(_, value, end, token_type)| {
+    best_match.map(|(_, value, end, token_type)| {
         log::debug!("Creating token '{}' for position {}", value, position);
-        Token::new(value, *end + position, token_type.clone())
+        Token::new(value, end + position, *token_type)
     })
 }
 
