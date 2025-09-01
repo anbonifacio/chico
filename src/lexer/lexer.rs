@@ -14,7 +14,7 @@ impl Lexer {
         let reader = BufReader::new(file);
         Ok(Self { reader })
     }
-    
+
     pub fn tokenize(&mut self) -> std::io::Result<Vec<Token>> {
         let mut tokens = Vec::new();
         for line in self.reader.by_ref().lines() {
@@ -25,11 +25,15 @@ impl Lexer {
 
             while position < line.len() {
                 // Skip whitespace
-                if line.chars().nth(position).map_or(false, |c| c.is_whitespace()) {
+                if line
+                    .chars()
+                    .nth(position)
+                    .map_or(false, |c| c.is_whitespace())
+                {
                     position += 1;
                     continue;
                 }
-                
+
                 if let Some(token) = find_match(&line, position) {
                     position = token.end();
                     tokens.push(token);
@@ -56,12 +60,17 @@ fn find_match(line: &str, position: usize) -> Option<Token> {
     for (re, token_type) in PATTERNS.iter() {
         if let Some(matched) = re.find(text) {
             if matched.start() == 0 {
-                matches.push((matched.len(), matched.as_str(), matched.end(), token_type.clone()));
+                matches.push((
+                    matched.len(),
+                    matched.as_str(),
+                    matched.end(),
+                    token_type.clone(),
+                ));
             }
         }
     }
     matches.sort_by_key(|&(len, _, _, _)| std::cmp::Reverse(len));
-    
+
     matches.first().map(|(_, value, end, token_type)| {
         log::debug!("Creating token '{}' for position {}", value, position);
         Token::new(value, *end + position, token_type.clone())
@@ -72,7 +81,7 @@ fn find_match(line: &str, position: usize) -> Option<Token> {
 mod tests {
     use super::*;
     use crate::lexer::TokenType;
-    
+
     #[test]
     fn test_find_match() {
         let line = "int main(void) {";
