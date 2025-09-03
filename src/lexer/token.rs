@@ -14,8 +14,8 @@ pub enum TokenType {
 
 #[derive(Debug, PartialEq)]
 pub struct Token {
-    value: String,
-    token_type: TokenType,
+    pub value: String,
+    pub token_type: TokenType,
     end: usize,
 }
 

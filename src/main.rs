@@ -4,7 +4,9 @@ use std::path::PathBuf;
 use std::process::Command;
 
 mod lexer;
+mod parser;
 use crate::lexer::lexer::Lexer;
+use crate::parser::parser::CParser;
 
 #[derive(Parser)]
 struct Cli {
@@ -70,6 +72,15 @@ fn main() -> std::io::Result<()> {
     log::debug!("Tokens: {:?}", tokens);
 
     if stage == Stage::Lex {
+        cleanup(&cli, &stage, &preprocessed, &assembled);
+        return Ok(());
+    }
+    
+    let parser = CParser::new();
+    let function = parser.parse_program(&tokens)?;
+    log::debug!("Program: {:?}", function);
+    
+    if stage == Stage::Parse {
         cleanup(&cli, &stage, &preprocessed, &assembled);
         return Ok(());
     }
