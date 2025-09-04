@@ -3,8 +3,10 @@ use clap::Parser;
 use std::path::PathBuf;
 use std::process::Command;
 
+mod codegen;
 mod lexer;
 mod parser;
+use crate::codegen::codegen::Codegen;
 use crate::lexer::lexer::Lexer;
 use crate::parser::parser::CParser;
 
@@ -75,12 +77,21 @@ fn main() -> std::io::Result<()> {
         cleanup(&cli, &stage, &preprocessed, &assembled);
         return Ok(());
     }
-    
+
     let parser = CParser::new();
-    let function = parser.parse_program(&tokens)?;
-    log::debug!("Program: {:?}", function);
-    
+    let c_program = parser.parse_program(&tokens)?;
+    log::debug!("Program: {:?}", c_program);
+
     if stage == Stage::Parse {
+        cleanup(&cli, &stage, &preprocessed, &assembled);
+        return Ok(());
+    }
+
+    let codegen = Codegen::new();
+    let code = codegen.generate_asm_ast(&c_program)?;
+    log::debug!("Generated ASM AST: {:?}", code);
+
+    if stage == Stage::Codegen {
         cleanup(&cli, &stage, &preprocessed, &assembled);
         return Ok(());
     }
@@ -132,16 +143,16 @@ fn cleanup(cli: &Cli, stage: &Stage, preprocessed: &PathBuf, assembled: &PathBuf
     let keep = cli.keep_generated.unwrap_or(false);
     if !keep {
         match stage {
-            Stage::Lex | Stage::Parse => {
-                std::fs::remove_file(&preprocessed)
-                    .expect(&format!("Failed to remove {}", preprocessed.display()));
-            }
-            _ => {
+            Stage::All => {
                 std::fs::remove_file(&preprocessed)
                     .expect(&format!("Failed to remove {}", preprocessed.display()));
 
                 std::fs::remove_file(&assembled)
                     .expect(&format!("Failed to remove {}", assembled.display()));
+            }
+            _ => {
+                std::fs::remove_file(&preprocessed)
+                    .expect(&format!("Failed to remove {}", preprocessed.display()));
             }
         }
     }

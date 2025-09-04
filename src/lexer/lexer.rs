@@ -87,7 +87,7 @@ mod tests {
         let token = find_match(line, 0).unwrap();
         assert_eq!(token, Token::new("int", 3, TokenType::IntKeyword));
     }
-    
+
     #[test]
     fn test_match_none() {
         let line = "a@b";

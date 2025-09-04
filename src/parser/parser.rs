@@ -1,7 +1,7 @@
 use std::slice::Iter;
 
 use crate::lexer::token::{Token, TokenType};
-use crate::parser::ast::*;
+use crate::parser::c_ast::*;
 use crate::parser::parser::FunctionDefinition::Function;
 
 pub struct CParser;
@@ -11,7 +11,7 @@ impl CParser {
         CParser {}
     }
 
-    pub fn parse_program(&self, tokens: &[Token]) -> std::io::Result<AST> {
+    pub fn parse_program(&self, tokens: &[Token]) -> std::io::Result<CProgram> {
         println!("Parsing {} tokens...", tokens.len());
         let tokens_iter = &mut tokens.iter();
         let program = self.parse_function(tokens_iter)?;
@@ -22,7 +22,7 @@ impl CParser {
                 format!("Error: {} tokens left unparsed", count),
             ));
         }
-        Ok(AST::Program(program))
+        Ok(CProgram::Program(program))
     }
 
     fn parse_function(&self, tokens_iter: &mut Iter<Token>) -> std::io::Result<FunctionDefinition> {
