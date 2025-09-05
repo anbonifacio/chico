@@ -48,23 +48,7 @@ pub enum Statement {
     Return(Exp),
 }
 
-impl Statement {
-    pub fn get_return_exp(&self) -> Option<&Exp> {
-        match self {
-            Statement::Return(exp) => Some(exp),
-        }
-    }
-}
-
 #[derive(Debug)]
 pub enum Exp {
     Constant(i32),
-}
-
-impl Exp {
-    pub fn get_value(&self) -> i32 {
-        match self {
-            Exp::Constant(value) => *value,
-        }
-    }
 }

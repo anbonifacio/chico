@@ -4,9 +4,11 @@ use std::path::PathBuf;
 use std::process::Command;
 
 mod codegen;
+mod emitter;
 mod lexer;
 mod parser;
 use crate::codegen::codegen::Codegen;
+use crate::emitter::code_emitter::CodeEmitter;
 use crate::lexer::lexer::Lexer;
 use crate::parser::parser::CParser;
 
@@ -96,26 +98,8 @@ fn main() -> std::io::Result<()> {
         return Ok(());
     }
 
-    let assembled_status = Command::new("gcc")
-        .args([
-            preprocessed.to_str().unwrap(),
-            "-S",
-            "-O",
-            "-fno-asynchronous-unwind-tables",
-            "-fcf-protection=none",
-            "-o",
-            assembled.to_str().unwrap(),
-        ])
-        .status()
-        .expect("Failed to run gcc -S");
-
-    if !assembled_status.success() {
-        eprintln!("assembling failed");
-        return Err(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            "gcc assembling failed",
-        ));
-    }
+    let mut emitter = CodeEmitter::new(&assembled)?;
+    emitter.emit_asm(&code)?;
 
     let compiled_status = Command::new("gcc")
         .args([

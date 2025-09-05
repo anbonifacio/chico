@@ -1,3 +1,5 @@
+use std::fmt::{Display, Formatter};
+
 #[derive(Debug)]
 pub enum AsmProgram {
     Program(FunctionDefinition),
@@ -28,5 +30,18 @@ pub enum Instruction {
 #[derive(Debug)]
 pub enum Operand {
     Imm(i32),
-    Register,
+    Register(RegisterType),
+}
+
+#[derive(Debug)]
+pub enum RegisterType {
+    Eax,
+}
+
+impl Display for RegisterType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            RegisterType::Eax => write!(f, "eax"),
+        }
+    }
 }

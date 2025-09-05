@@ -1,4 +1,6 @@
-use crate::codegen::asm_ast::{AsmProgram, FunctionDefinition, Identifier, Instruction, Operand};
+use crate::codegen::asm_ast::{
+    AsmProgram, FunctionDefinition, Identifier, Instruction, Operand, RegisterType,
+};
 use crate::parser::c_ast::{CProgram, Exp, Statement};
 
 pub struct Codegen;
@@ -38,7 +40,10 @@ impl Codegen {
         let mut instructions = Vec::new();
         match expr {
             Exp::Constant(int) => {
-                instructions.push(Instruction::Mov(Operand::Imm(*int), Operand::Register));
+                instructions.push(Instruction::Mov(
+                    Operand::Imm(*int),
+                    Operand::Register(RegisterType::Eax),
+                ));
                 instructions.push(Instruction::Ret);
             }
         }
