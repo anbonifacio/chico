@@ -17,8 +17,11 @@ static CLOSE_PARENTHESIS: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\)").u
 static OPEN_BRACE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\{").unwrap());
 static CLOSE_BRACE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\}").unwrap());
 static SEMICOLON: LazyLock<Regex> = LazyLock::new(|| Regex::new(r";").unwrap());
+static TILDE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"~").unwrap());
+static HYPHEN: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"-").unwrap());
+static TWO_HYPHENS: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"--").unwrap());
 
-static PATTERNS: LazyLock<[(&Regex, TokenType); 10]> = LazyLock::new(|| {
+static PATTERNS: LazyLock<[(&Regex, TokenType); 13]> = LazyLock::new(|| {
     [
         (&*INT_KEYWORD, TokenType::IntKeyword),
         (&*VOID_KEYWORD, TokenType::VoidKeyword),
@@ -30,5 +33,8 @@ static PATTERNS: LazyLock<[(&Regex, TokenType); 10]> = LazyLock::new(|| {
         (&*OPEN_BRACE, TokenType::OpenBrace),
         (&*CLOSE_BRACE, TokenType::CloseBrace),
         (&*SEMICOLON, TokenType::Semicolon),
+        (&*TILDE, TokenType::Tilde),
+        (&*HYPHEN, TokenType::Hyphen),
+        (&*TWO_HYPHENS, TokenType::TwoHyphens),
     ]
 });

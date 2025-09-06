@@ -10,6 +10,9 @@ pub enum TokenType {
     ReturnKeyword,
     Semicolon,
     VoidKeyword,
+    Tilde,
+    Hyphen,
+    TwoHyphens,
 }
 
 #[derive(Debug, PartialEq)]
