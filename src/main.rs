@@ -44,19 +44,7 @@ fn main() -> std::io::Result<()> {
     env_logger::init();
 
     let cli = Cli::parse();
-    let stage = if let Some(true) = cli.lex {
-        Stage::Lex
-    } else if let Some(true) = cli.parse {
-        Stage::Parse
-    } else if let Some(true) = cli.tacky {
-        Stage::Tacky
-    } else if let Some(true) = cli.codegen {
-        Stage::Codegen
-    } else if let Some(true) = cli.emit {
-        Stage::Emit
-    } else {
-        Stage::All
-    };
+    let stage = choose_stage(&cli);
 
     let preprocessed = cli.input_file.with_extension("i");
     let assembled = cli.input_file.with_extension("s");
@@ -89,6 +77,7 @@ fn main() -> std::io::Result<()> {
     }
 
     let mut expr_pool = ExprPool::new();
+
     let mut parser = CParser::new(&mut expr_pool);
     let c_program = parser.parse_program(&tokens)?;
     log::debug!("Program: {:?}", c_program);
@@ -138,6 +127,22 @@ fn main() -> std::io::Result<()> {
     cleanup(&cli, &stage, &preprocessed, &assembled);
 
     Ok(())
+}
+
+fn choose_stage(cli: &Cli) -> Stage {
+    if let Some(true) = cli.lex {
+        Stage::Lex
+    } else if let Some(true) = cli.parse {
+        Stage::Parse
+    } else if let Some(true) = cli.tacky {
+        Stage::Tacky
+    } else if let Some(true) = cli.codegen {
+        Stage::Codegen
+    } else if let Some(true) = cli.emit {
+        Stage::Emit
+    } else {
+        Stage::All
+    }
 }
 
 fn cleanup(cli: &Cli, stage: &Stage, preprocessed: &PathBuf, assembled: &PathBuf) {
