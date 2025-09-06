@@ -1,21 +1,21 @@
 use std::fmt::{Display, Formatter};
 
-pub enum TackyProgram {
+pub enum TackyIR {
     Program(FunctionDefinition),
 }
 
-impl TackyProgram {
+impl TackyIR {
     pub fn get_fn(&self) -> &FunctionDefinition {
         match self {
-            TackyProgram::Program(fn_def) => fn_def,
+            TackyIR::Program(fn_def) => fn_def,
         }
     }
 }
 
-impl Display for TackyProgram {
+impl Display for TackyIR {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            TackyProgram::Program(fn_def) => write!(f, "Program(\n{}\n)", fn_def),
+            TackyIR::Program(fn_def) => write!(f, "Program(\n{}\n)", fn_def),
         }
     }
 }
