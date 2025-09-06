@@ -161,15 +161,13 @@ impl<'expr> CParser<'expr> {
             .parse::<i32>()
             .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, format!("{}", err)))
     }
-    
-    fn extract_token(&self, tokens_iter: &mut Peekable<Iter<'expr, Token>>) -> std::io::Result<&'expr Token> {
+
+    fn extract_token(
+        &self,
+        tokens_iter: &mut Peekable<Iter<'expr, Token>>,
+    ) -> std::io::Result<&'expr Token> {
         tokens_iter.next().ok_or_else(|| {
-            std::io::Error::new(
-                std::io::ErrorKind::InvalidData,
-                "Unexpected end of input",
-            )
+            std::io::Error::new(std::io::ErrorKind::InvalidData, "Unexpected end of input")
         })
     }
 }
-
-

@@ -16,12 +16,14 @@ use crate::parser::parser::CParser;
 #[derive(Parser)]
 struct Cli {
     input_file: PathBuf,
-    #[arg(long, action = ArgAction::SetTrue, conflicts_with_all = ["parse", "codegen"])]
+    #[arg(long, action = ArgAction::SetTrue, conflicts_with_all = ["parse", "codegen", "tacky"])]
     lex: Option<bool>,
-    #[arg(long, action = ArgAction::SetTrue, conflicts_with_all = ["lex", "codegen"])]
+    #[arg(long, action = ArgAction::SetTrue, conflicts_with_all = ["lex", "codegen", "tacky"])]
     parse: Option<bool>,
-    #[arg(long, action = ArgAction::SetTrue, conflicts_with_all = ["lex", "parse"])]
+    #[arg(long, action = ArgAction::SetTrue, conflicts_with_all = ["lex", "parse", "tacky"])]
     codegen: Option<bool>,
+    #[arg(long, action = ArgAction::SetTrue, conflicts_with_all = ["lex", "parse", "codegen"])]
+    tacky: Option<bool>,
     #[arg(long, action = ArgAction::SetTrue)]
     keep_generated: Option<bool>,
 }
@@ -32,6 +34,7 @@ enum Stage {
     Lex,
     Parse,
     Codegen,
+    Tacky,
 }
 
 fn main() -> std::io::Result<()> {
@@ -44,6 +47,8 @@ fn main() -> std::io::Result<()> {
         Stage::Parse
     } else if let Some(true) = cli.codegen {
         Stage::Codegen
+    } else if let Some(true) = cli.tacky {
+        Stage::Tacky
     } else {
         Stage::All
     };
@@ -93,6 +98,11 @@ fn main() -> std::io::Result<()> {
     log::debug!("Generated ASM AST: {:?}", code);
 
     if stage == Stage::Codegen {
+        cleanup(&cli, &stage, &preprocessed, &assembled);
+        return Ok(());
+    }
+
+    if stage == Stage::Tacky {
         cleanup(&cli, &stage, &preprocessed, &assembled);
         return Ok(());
     }
