@@ -16,14 +16,16 @@ use crate::parser::parser::CParser;
 #[derive(Parser)]
 struct Cli {
     input_file: PathBuf,
-    #[arg(long, action = ArgAction::SetTrue, conflicts_with_all = ["parse", "codegen", "tacky"])]
+    #[arg(long, action = ArgAction::SetTrue, conflicts_with_all = ["parse", "codegen", "tacky", "emit"])]
     lex: Option<bool>,
-    #[arg(long, action = ArgAction::SetTrue, conflicts_with_all = ["lex", "codegen", "tacky"])]
+    #[arg(long, action = ArgAction::SetTrue, conflicts_with_all = ["lex", "codegen", "tacky", "emit"])]
     parse: Option<bool>,
-    #[arg(long, action = ArgAction::SetTrue, conflicts_with_all = ["lex", "parse", "tacky"])]
-    codegen: Option<bool>,
-    #[arg(long, action = ArgAction::SetTrue, conflicts_with_all = ["lex", "parse", "codegen"])]
+    #[arg(long, action = ArgAction::SetTrue, conflicts_with_all = ["lex", "parse", "codegen", "emit"])]
     tacky: Option<bool>,
+    #[arg(long, action = ArgAction::SetTrue, conflicts_with_all = ["lex", "parse", "tacky", "emit"])]
+    codegen: Option<bool>,
+    #[arg(long, action = ArgAction::SetTrue, conflicts_with_all = ["lex", "parse", "tacky", "codegen"])]
+    emit: Option<bool>,
     #[arg(long, action = ArgAction::SetTrue)]
     keep_generated: Option<bool>,
 }
@@ -33,8 +35,9 @@ enum Stage {
     All,
     Lex,
     Parse,
-    Codegen,
     Tacky,
+    Codegen,
+    Emit,
 }
 
 fn main() -> std::io::Result<()> {
@@ -45,10 +48,12 @@ fn main() -> std::io::Result<()> {
         Stage::Lex
     } else if let Some(true) = cli.parse {
         Stage::Parse
-    } else if let Some(true) = cli.codegen {
-        Stage::Codegen
     } else if let Some(true) = cli.tacky {
         Stage::Tacky
+    } else if let Some(true) = cli.codegen {
+        Stage::Codegen
+    } else if let Some(true) = cli.emit {
+        Stage::Emit
     } else {
         Stage::All
     };
@@ -93,6 +98,12 @@ fn main() -> std::io::Result<()> {
         return Ok(());
     }
 
+    // TODO: implement and use TACKY IR
+    if stage == Stage::Tacky {
+        cleanup(&cli, &stage, &preprocessed, &assembled);
+        return Ok(());
+    }
+
     let codegen = Codegen::new(&mut expr_pool);
     let code = codegen.generate_asm_ast(&c_program)?;
     log::debug!("Generated ASM AST: {:?}", code);
@@ -102,13 +113,13 @@ fn main() -> std::io::Result<()> {
         return Ok(());
     }
 
-    if stage == Stage::Tacky {
+    let mut emitter = CodeEmitter::new(&assembled)?;
+    emitter.emit_asm(&code)?;
+
+    if stage == Stage::Emit {
         cleanup(&cli, &stage, &preprocessed, &assembled);
         return Ok(());
     }
-
-    let mut emitter = CodeEmitter::new(&assembled)?;
-    emitter.emit_asm(&code)?;
 
     let compiled_status = Command::new("gcc")
         .args([

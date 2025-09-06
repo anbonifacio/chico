@@ -51,7 +51,7 @@ impl CodeEmitter {
                                         }
                                     };
                                     self.output.write(
-                                        format!("    movl    {}, {}\n", src, dst).as_bytes(),
+                                        format!("    movl   {}, {}\n", src, dst).as_bytes(),
                                     )?;
                                 }
                                 Instruction::Ret => {
