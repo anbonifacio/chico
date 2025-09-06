@@ -7,11 +7,13 @@ mod codegen;
 mod emitter;
 mod lexer;
 mod parser;
+mod tacky_ir;
 use crate::codegen::c_codegen::Codegen;
 use crate::emitter::code_emitter::CodeEmitter;
 use crate::lexer::c_lexer::Lexer;
 use crate::parser::c_ast::ExprPool;
 use crate::parser::c_parser::CParser;
+use crate::tacky_ir::tacky::TackyGenerator;
 
 #[derive(Parser)]
 struct Cli {
