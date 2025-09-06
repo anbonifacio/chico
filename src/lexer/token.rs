@@ -26,7 +26,7 @@ impl Token {
     pub fn new(token: &str, end: usize, token_type: TokenType) -> Self {
         Token {
             value: token.to_string(),
-            token_type: token_type,
+            token_type,
             end,
         }
     }

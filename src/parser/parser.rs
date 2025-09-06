@@ -168,11 +168,9 @@ impl<'x> CParser<'x> {
     }
 
     fn parse_as_i32(&self, token: &Token) -> std::io::Result<i32> {
-        Ok(token.value.parse::<i32>().map_err(|err| {
-            std::io::Error::new(
-                std::io::ErrorKind::InvalidData,
-                format!("{}", err.to_string()),
-            )
-        })?)
+        token
+            .value
+            .parse::<i32>()
+            .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, format!("{}", err)))
     }
 }

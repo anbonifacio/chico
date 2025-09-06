@@ -66,10 +66,7 @@ fn main() -> std::io::Result<()> {
 
     if !preprocessed_status.success() {
         log::error!("gcc preprocessing failed");
-        return Err(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            "gcc preprocessing failed",
-        ));
+        return Err(std::io::Error::other("gcc preprocessing failed"));
     }
 
     let mut lexer = Lexer::new(&preprocessed)?;
@@ -114,10 +111,7 @@ fn main() -> std::io::Result<()> {
 
     if !compiled_status.success() {
         log::error!("compiling failed");
-        return Err(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            "gcc compilation failed",
-        ));
+        return Err(std::io::Error::other("gcc compilation failed"));
     }
 
     cleanup(&cli, &stage, &preprocessed, &assembled);
@@ -130,15 +124,15 @@ fn cleanup(cli: &Cli, stage: &Stage, preprocessed: &PathBuf, assembled: &PathBuf
     if !keep {
         match stage {
             Stage::All => {
-                std::fs::remove_file(&preprocessed)
-                    .expect(&format!("Failed to remove {}", preprocessed.display()));
+                std::fs::remove_file(preprocessed)
+                    .unwrap_or_else(|_| panic!("Failed to remove {}", preprocessed.display()));
 
-                std::fs::remove_file(&assembled)
-                    .expect(&format!("Failed to remove {}", assembled.display()));
+                std::fs::remove_file(assembled)
+                    .unwrap_or_else(|_| panic!("Failed to remove {}", assembled.display()));
             }
             _ => {
-                std::fs::remove_file(&preprocessed)
-                    .expect(&format!("Failed to remove {}", preprocessed.display()));
+                std::fs::remove_file(preprocessed)
+                    .unwrap_or_else(|_| panic!("Failed to remove {}", preprocessed.display()));
             }
         }
     }
