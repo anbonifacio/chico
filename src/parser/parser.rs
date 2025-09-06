@@ -5,16 +5,16 @@ use crate::lexer::token::{Token, TokenType};
 use crate::parser::c_ast::*;
 use crate::parser::parser::FunctionDefinition::Function;
 
-pub struct CParser<'x> {
-    expr_pool: &'x mut ExprPool,
+pub struct CParser<'expr> {
+    expr_pool: &'expr mut ExprPool,
 }
 
-impl<'x> CParser<'x> {
-    pub fn new(expr_pool: &'x mut ExprPool) -> Self {
+impl<'expr> CParser<'expr> {
+    pub fn new(expr_pool: &'expr mut ExprPool) -> Self {
         CParser { expr_pool }
     }
 
-    pub fn parse_program(&mut self, tokens: &[Token]) -> std::io::Result<CProgram> {
+    pub fn parse_program(&mut self, tokens: &'expr [Token]) -> std::io::Result<CProgram> {
         println!("Parsing {} tokens...", tokens.len());
         let tokens_iter = &mut tokens.iter().peekable();
         let program = self.parse_function(tokens_iter)?;
@@ -30,7 +30,7 @@ impl<'x> CParser<'x> {
 
     fn parse_function(
         &mut self,
-        tokens_iter: &mut Peekable<Iter<Token>>,
+        tokens_iter: &mut Peekable<Iter<'expr, Token>>,
     ) -> std::io::Result<FunctionDefinition> {
         self.expect(TokenType::IntKeyword, tokens_iter)?;
         let identifier = self.parse_identifier(tokens_iter)?;
@@ -70,7 +70,7 @@ impl<'x> CParser<'x> {
 
     fn parse_statement(
         &mut self,
-        tokens_iter: &mut Peekable<Iter<Token>>,
+        tokens_iter: &mut Peekable<Iter<'expr, Token>>,
     ) -> std::io::Result<Statement> {
         self.expect(TokenType::ReturnKeyword, tokens_iter)?;
         let expression = self.parse_expression(tokens_iter)?;
@@ -80,30 +80,20 @@ impl<'x> CParser<'x> {
 
     fn parse_expression(
         &mut self,
-        tokens_iter: &mut Peekable<Iter<Token>>,
+        tokens_iter: &mut Peekable<Iter<'expr, Token>>,
     ) -> std::io::Result<ExprRef> {
         if let Some(next_token) = tokens_iter.peek() {
             log::debug!("Next token: {:?}", next_token);
             match next_token.token_type {
                 TokenType::Constant => {
-                    let token = tokens_iter.next().ok_or_else(|| {
-                        std::io::Error::new(
-                            std::io::ErrorKind::InvalidData,
-                            "Unexpected end of input",
-                        )
-                    })?;
+                    let token = self.extract_token(tokens_iter)?;
                     let expr_ref = self
                         .expr_pool
                         .add_expr(Expr::Constant(self.parse_as_i32(token)?));
                     Ok(expr_ref)
                 }
                 TokenType::Tilde | TokenType::Hyphen => {
-                    let token = tokens_iter.next().ok_or_else(|| {
-                        std::io::Error::new(
-                            std::io::ErrorKind::InvalidData,
-                            "Unexpected end of input",
-                        )
-                    })?;
+                    let token = self.extract_token(tokens_iter)?;
                     log::debug!("This token: {:?}", token);
                     let operator = self.parse_unop(token)?;
                     let inner_expr = self.parse_expression(tokens_iter)?;
@@ -111,8 +101,7 @@ impl<'x> CParser<'x> {
                     Ok(expr_ref)
                 }
                 TokenType::OpenParenthesis => {
-                    log::debug!("This token: {:?}", next_token);
-                    tokens_iter.next();
+                    self.expect(TokenType::OpenParenthesis, tokens_iter)?;
                     let expr_ref = self.parse_expression(tokens_iter)?;
                     self.expect(TokenType::CloseParenthesis, tokens_iter)?;
                     Ok(expr_ref)
@@ -123,7 +112,6 @@ impl<'x> CParser<'x> {
                 )),
             }
         } else {
-            // TODO: is this correct?
             Err(std::io::Error::new(
                 std::io::ErrorKind::InvalidData,
                 format!(
@@ -173,4 +161,15 @@ impl<'x> CParser<'x> {
             .parse::<i32>()
             .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, format!("{}", err)))
     }
+    
+    fn extract_token(&self, tokens_iter: &mut Peekable<Iter<'expr, Token>>) -> std::io::Result<&'expr Token> {
+        tokens_iter.next().ok_or_else(|| {
+            std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "Unexpected end of input",
+            )
+        })
+    }
 }
+
+

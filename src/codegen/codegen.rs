@@ -3,12 +3,12 @@ use crate::codegen::asm_ast::{
 };
 use crate::parser::c_ast::{CProgram, Expr, ExprPool, ExprRef, Statement};
 
-pub struct Codegen<'x> {
-    expr_pool: &'x mut ExprPool,
+pub struct Codegen<'expr> {
+    expr_pool: &'expr mut ExprPool,
 }
 
-impl<'x> Codegen<'x> {
-    pub fn new(expr_pool: &'x mut ExprPool) -> Self {
+impl<'expr> Codegen<'expr> {
+    pub fn new(expr_pool: &'expr mut ExprPool) -> Self {
         Codegen { expr_pool }
     }
 
