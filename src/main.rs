@@ -10,6 +10,7 @@ mod parser;
 use crate::codegen::codegen::Codegen;
 use crate::emitter::code_emitter::CodeEmitter;
 use crate::lexer::lexer::Lexer;
+use crate::parser::c_ast::ExprPool;
 use crate::parser::parser::CParser;
 
 #[derive(Parser)]
@@ -80,7 +81,8 @@ fn main() -> std::io::Result<()> {
         return Ok(());
     }
 
-    let parser = CParser::new();
+    let mut expr_pool = ExprPool::new();
+    let mut parser = CParser::new(&mut expr_pool);
     let c_program = parser.parse_program(&tokens)?;
     log::debug!("Program: {:?}", c_program);
 
@@ -89,7 +91,7 @@ fn main() -> std::io::Result<()> {
         return Ok(());
     }
 
-    let codegen = Codegen::new();
+    let codegen = Codegen::new(&mut expr_pool);
     let code = codegen.generate_asm_ast(&c_program)?;
     log::debug!("Generated ASM AST: {:?}", code);
 

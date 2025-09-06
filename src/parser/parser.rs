@@ -4,14 +4,16 @@ use crate::lexer::token::{Token, TokenType};
 use crate::parser::c_ast::*;
 use crate::parser::parser::FunctionDefinition::Function;
 
-pub struct CParser;
+pub struct CParser<'x> {
+    expr_pool: &'x mut ExprPool,
+}
 
-impl CParser {
-    pub fn new() -> Self {
-        CParser {}
+impl<'x> CParser<'x> {
+    pub fn new(expr_pool: &'x mut ExprPool) -> Self {
+        CParser { expr_pool }
     }
 
-    pub fn parse_program(&self, tokens: &[Token]) -> std::io::Result<CProgram> {
+    pub fn parse_program(&mut self, tokens: &[Token]) -> std::io::Result<CProgram> {
         println!("Parsing {} tokens...", tokens.len());
         let tokens_iter = &mut tokens.iter();
         let program = self.parse_function(tokens_iter)?;
@@ -25,7 +27,10 @@ impl CParser {
         Ok(CProgram::Program(program))
     }
 
-    fn parse_function(&self, tokens_iter: &mut Iter<Token>) -> std::io::Result<FunctionDefinition> {
+    fn parse_function(
+        &mut self,
+        tokens_iter: &mut Iter<Token>,
+    ) -> std::io::Result<FunctionDefinition> {
         self.expect(TokenType::IntKeyword, tokens_iter)?;
         let identifier = self.parse_identifier(tokens_iter)?;
         self.expect(TokenType::OpenParenthesis, tokens_iter)?;
@@ -59,39 +64,78 @@ impl CParser {
         }
     }
 
-    fn parse_statement(&self, tokens_iter: &mut Iter<Token>) -> std::io::Result<Statement> {
+    fn parse_statement(&mut self, tokens_iter: &mut Iter<Token>) -> std::io::Result<Statement> {
         self.expect(TokenType::ReturnKeyword, tokens_iter)?;
         let expression = self.parse_expression(tokens_iter)?;
         self.expect(TokenType::Semicolon, tokens_iter)?;
         Ok(Statement::Return(expression))
     }
 
-    fn parse_expression(&self, tokens_iter: &mut Iter<Token>) -> std::io::Result<Exp> {
-        if let Some(token) = tokens_iter.next() {
-            if token.token_type == TokenType::Constant {
-                Ok(Exp::Constant(token.value.parse::<i32>().map_err(
-                    |err| {
-                        std::io::Error::new(
-                            std::io::ErrorKind::InvalidData,
-                            format!("{}", err.to_string()),
-                        )
-                    },
-                )?))
-            } else {
-                Err(std::io::Error::new(
-                    std::io::ErrorKind::InvalidInput,
-                    format!(
-                        "Expected {:?}, found {:?}",
-                        TokenType::Constant,
-                        token.token_type
-                    ),
-                ))
+    fn parse_expression(&mut self, tokens_iter: &mut Iter<Token>) -> std::io::Result<ExprRef> {
+        if let Some(next_token) = tokens_iter.peekable().peek() {
+            match next_token.token_type {
+                TokenType::Constant => {
+                    if let Some(token) = tokens_iter.next() {
+                        match token.token_type {
+                            TokenType::Constant => {
+                                let expr_ref = self
+                                    .expr_pool
+                                    .add_expr(Expr::Constant(self.parse_as_i32(token)?));
+                                Ok(expr_ref)
+                            }
+                            _ => Err(std::io::Error::new(
+                                std::io::ErrorKind::InvalidInput,
+                                format!(
+                                    "Expected {:?}, found {:?}",
+                                    TokenType::Constant,
+                                    token.token_type
+                                ),
+                            )),
+                        }
+                    } else {
+                        Err(std::io::Error::new(
+                            std::io::ErrorKind::UnexpectedEof,
+                            "Unexpected end of input",
+                        ))
+                    }
+                }
+                TokenType::Tilde | TokenType::Hyphen => {
+                    let operator = self.parse_unop(tokens_iter)?;
+                    let inner_expr = self.parse_expression(tokens_iter)?;
+                    let expr_ref = self.expr_pool.add_expr(Expr::Unary(operator, inner_expr));
+                    Ok(expr_ref)
+                }
+                TokenType::OpenParenthesis => {
+                    tokens_iter.next();
+                    let expr_ref = self.parse_expression(tokens_iter)?;
+                    self.expect(TokenType::CloseParenthesis, tokens_iter)?;
+                    Ok(expr_ref)
+                }
+                _ => Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    format!("Malformed expression, found: {:?}", next_token.token_type),
+                )),
             }
         } else {
-            Err(std::io::Error::new(
+            let expr_ref = self.parse_expression(tokens_iter)?;
+            Ok(expr_ref)
+        }
+    }
+
+    fn parse_unop(&self, tokens_iter: &mut Iter<Token>) -> std::io::Result<UnaryOperator> {
+        match tokens_iter.next() {
+            Some(token) => match token.token_type {
+                TokenType::Tilde => Ok(UnaryOperator::Complement),
+                TokenType::Hyphen => Ok(UnaryOperator::Negate),
+                _ => Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidInput,
+                    format!("Expected unary operator, found {:?}", token.token_type),
+                )),
+            },
+            None => Err(std::io::Error::new(
                 std::io::ErrorKind::UnexpectedEof,
                 "Unexpected end of input",
-            ))
+            )),
         }
     }
 
@@ -115,5 +159,14 @@ impl CParser {
                 "Unexpected end of input",
             ))
         }
+    }
+
+    fn parse_as_i32(&self, token: &Token) -> std::io::Result<i32> {
+        Ok(token.value.parse::<i32>().map_err(|err| {
+            std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                format!("{}", err.to_string()),
+            )
+        })?)
     }
 }

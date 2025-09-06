@@ -45,10 +45,39 @@ impl Identifier {
 
 #[derive(Debug)]
 pub enum Statement {
-    Return(Exp),
+    Return(ExprRef),
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct ExprRef(u32);
+
+#[derive(Debug)]
+pub struct ExprPool(Vec<Expr>);
+
+impl ExprPool {
+    pub fn new() -> Self {
+        ExprPool(Vec::new())
+    }
+
+    pub fn add_expr(&mut self, expr: Expr) -> ExprRef {
+        let id = self.0.len() as u32;
+        self.0.push(expr);
+        ExprRef(id)
+    }
+
+    pub fn get_expr(&self, id: ExprRef) -> &Expr {
+        &self.0[id.0 as usize]
+    }
 }
 
 #[derive(Debug)]
-pub enum Exp {
+pub enum Expr {
     Constant(i32),
+    Unary(UnaryOperator, ExprRef),
+}
+
+#[derive(Debug)]
+pub enum UnaryOperator {
+    Complement,
+    Negate,
 }
