@@ -1,4 +1,5 @@
-#[derive(Debug)]
+use std::fmt::{Display, Formatter};
+
 pub enum CProgram {
     Program(FunctionDefinition),
 }
@@ -11,7 +12,14 @@ impl CProgram {
     }
 }
 
-#[derive(Debug)]
+impl Display for CProgram {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            CProgram::Program(fn_def) => write!(f, "Program(\n{}\n)", fn_def),
+        }
+    }
+}
+
 pub enum FunctionDefinition {
     Function(Identifier, Statement),
 }
@@ -30,7 +38,19 @@ impl FunctionDefinition {
     }
 }
 
-#[derive(Debug)]
+impl Display for FunctionDefinition {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            FunctionDefinition::Function(name, body) => write!(
+                f,
+                " Function(\n  name=\"{}\",\n  body={}\n )",
+                name.get_name(),
+                body
+            ),
+        }
+    }
+}
+
 pub enum Identifier {
     Name(String),
 }
@@ -43,15 +63,35 @@ impl Identifier {
     }
 }
 
-#[derive(Debug)]
+impl Display for Identifier {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Identifier::Name(name) => write!(f, "{}", name),
+        }
+    }
+}
+
 pub enum Statement {
     Return(ExprRef),
 }
 
-#[derive(Debug, Clone, Copy)]
+impl Display for Statement {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Statement::Return(expr_ref) => write!(f, "Return(\n  {}\n  )", expr_ref),
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
 pub struct ExprRef(u32);
 
-#[derive(Debug)]
+impl Display for ExprRef {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "  ExprRef({})", self.0)
+    }
+}
+
 pub struct ExprPool(Vec<Expr>);
 
 impl ExprPool {
@@ -70,14 +110,30 @@ impl ExprPool {
     }
 }
 
-#[derive(Debug)]
 pub enum Expr {
     Constant(i32),
     Unary(UnaryOperator, ExprRef),
 }
 
-#[derive(Debug)]
+impl Display for Expr {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Expr::Constant(value) => write!(f, "{}", value),
+            Expr::Unary(op, expr) => write!(f, "{}({})", op, expr),
+        }
+    }
+}
+
 pub enum UnaryOperator {
     Complement,
     Negate,
+}
+
+impl Display for UnaryOperator {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            UnaryOperator::Complement => write!(f, "~"),
+            UnaryOperator::Negate => write!(f, "-"),
+        }
+    }
 }

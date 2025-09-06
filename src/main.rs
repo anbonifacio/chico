@@ -7,11 +7,11 @@ mod codegen;
 mod emitter;
 mod lexer;
 mod parser;
-use crate::codegen::codegen::Codegen;
+use crate::codegen::c_codegen::Codegen;
 use crate::emitter::code_emitter::CodeEmitter;
-use crate::lexer::lexer::Lexer;
+use crate::lexer::c_lexer::Lexer;
 use crate::parser::c_ast::ExprPool;
-use crate::parser::parser::CParser;
+use crate::parser::c_parser::CParser;
 
 #[derive(Parser)]
 struct Cli {
@@ -78,9 +78,9 @@ fn main() -> std::io::Result<()> {
 
     let mut expr_pool = ExprPool::new();
 
-    let mut parser = CParser::new(&mut expr_pool);
-    let c_program = parser.parse_program(&tokens)?;
-    log::debug!("Program: {:?}", c_program);
+    let mut parser = CParser::new(&mut expr_pool, &tokens);
+    let c_program = parser.parse_program()?;
+    log::debug!("{}", c_program);
 
     if stage == Stage::Parse {
         cleanup(&cli, &stage, &preprocessed, &assembled);

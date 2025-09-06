@@ -3,19 +3,21 @@ use std::slice::Iter;
 
 use crate::lexer::token::{Token, TokenType};
 use crate::parser::c_ast::*;
-use crate::parser::parser::FunctionDefinition::Function;
+use crate::parser::c_parser::FunctionDefinition::Function;
 
 pub struct CParser<'expr> {
     expr_pool: &'expr mut ExprPool,
+    tokens: &'expr [Token],
 }
 
 impl<'expr> CParser<'expr> {
-    pub fn new(expr_pool: &'expr mut ExprPool) -> Self {
-        CParser { expr_pool }
+    pub fn new(expr_pool: &'expr mut ExprPool, tokens: &'expr [Token]) -> Self {
+        CParser { expr_pool, tokens }
     }
 
-    pub fn parse_program(&mut self, tokens: &'expr [Token]) -> std::io::Result<CProgram> {
-        println!("Parsing {} tokens...", tokens.len());
+    pub fn parse_program(&mut self) -> std::io::Result<CProgram> {
+        let tokens = self.tokens;
+        log::debug!("Parsing {} tokens...", tokens.len());
         let tokens_iter = &mut tokens.iter().peekable();
         let program = self.parse_function(tokens_iter)?;
         let count = tokens_iter.count();

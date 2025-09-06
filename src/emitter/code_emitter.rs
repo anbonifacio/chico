@@ -22,17 +22,17 @@ impl CodeEmitter {
             AsmProgram::Program(function_definition) => {
                 #[cfg(target_os = "macos")]
                 {
-                    self.output.write(b"    .globl _main\n")?;
+                    self.output.write_all(b"    .globl _main\n")?;
                 }
                 #[cfg(target_os = "linux")]
                 {
-                    self.output.write(b"    .globl main\n")?;
+                    self.output.write_all(b"    .globl main\n")?;
                 }
                 match function_definition {
                     FunctionDefinition::Function(identifier, instructions) => {
                         match identifier {
                             Identifier::Name(name) => {
-                                self.output.write(format!("{}:\n", name).as_bytes())?;
+                                self.output.write_all(format!("{}:\n", name).as_bytes())?;
                             }
                         }
                         for instruction in instructions {
@@ -50,12 +50,12 @@ impl CodeEmitter {
                                             format!("%{}", reg)
                                         }
                                     };
-                                    self.output.write(
+                                    self.output.write_all(
                                         format!("    movl   {}, {}\n", src, dst).as_bytes(),
                                     )?;
                                 }
                                 Instruction::Ret => {
-                                    self.output.write(b"    ret\n")?;
+                                    self.output.write_all(b"    ret\n")?;
                                 }
                             }
                         }
@@ -67,7 +67,7 @@ impl CodeEmitter {
         #[cfg(target_os = "linux")]
         {
             self.output
-                .write(b".section .note.GNU-stack,\"\",@progbits\n")?;
+                .write_all(b".section .note.GNU-stack,\"\",@progbits\n")?;
         }
 
         self.output.flush()

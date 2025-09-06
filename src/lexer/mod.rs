@@ -4,7 +4,7 @@ use regex::Regex;
 
 use crate::lexer::token::TokenType;
 
-pub(crate) mod lexer;
+pub(crate) mod c_lexer;
 pub(crate) mod token;
 
 static IDENTIFIER: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"[a-zA-Z_]\w*\b").unwrap());
