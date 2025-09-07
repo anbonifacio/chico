@@ -89,7 +89,10 @@ fn main() -> std::io::Result<()> {
         return Ok(());
     }
 
-    // TODO: implement and use TACKY IR
+    let tacky = TackyGenerator::new(&expr_pool);
+    let tacky_ir = tacky.generate_ir(&c_program)?;
+    log::debug!("Generated Tacky IR: {}", tacky_ir);
+
     if stage == Stage::Tacky {
         cleanup(&cli, &stage, &preprocessed, &assembled);
         return Ok(());

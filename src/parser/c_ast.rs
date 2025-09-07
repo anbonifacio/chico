@@ -5,7 +5,7 @@ pub enum CProgram {
 }
 
 impl CProgram {
-    pub fn get_fn(&self) -> &FunctionDefinition {
+    pub fn fn_def(&self) -> &FunctionDefinition {
         match self {
             CProgram::Program(fn_def) => fn_def,
         }
@@ -15,7 +15,7 @@ impl CProgram {
 impl Display for CProgram {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            CProgram::Program(fn_def) => write!(f, "Program(\n{}\n)", fn_def),
+            CProgram::Program(fn_def) => write!(f, "\nProgram:\n{}", fn_def),
         }
     }
 }
@@ -25,13 +25,13 @@ pub enum FunctionDefinition {
 }
 
 impl FunctionDefinition {
-    pub fn get_identifier(&self) -> &Identifier {
+    pub fn identifier(&self) -> &Identifier {
         match self {
             FunctionDefinition::Function(name, _) => name,
         }
     }
 
-    pub fn get_body(&self) -> &Statement {
+    pub fn body(&self) -> &Statement {
         match self {
             FunctionDefinition::Function(_, body) => body,
         }
@@ -43,8 +43,8 @@ impl Display for FunctionDefinition {
         match self {
             FunctionDefinition::Function(name, body) => write!(
                 f,
-                " Function(\n  name=\"{}\",\n  body={}\n )",
-                name.get_name(),
+                "  Function:\n    name=\"{}\",\n    body={}",
+                name.name(),
                 body
             ),
         }
@@ -56,7 +56,7 @@ pub enum Identifier {
 }
 
 impl Identifier {
-    pub fn get_name(&self) -> &str {
+    pub fn name(&self) -> &str {
         match self {
             Identifier::Name(name) => name,
         }
@@ -78,7 +78,7 @@ pub enum Statement {
 impl Display for Statement {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Statement::Return(expr_ref) => write!(f, "Return(\n  {}\n  )", expr_ref),
+            Statement::Return(expr_ref) => write!(f, "Return: {}", expr_ref),
         }
     }
 }
@@ -86,9 +86,15 @@ impl Display for Statement {
 #[derive(Clone, Copy)]
 pub struct ExprRef(u32);
 
+impl ExprRef {
+    pub fn id(&self) -> u32 {
+        self.0
+    }
+}
+
 impl Display for ExprRef {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "  ExprRef({})", self.0)
+        write!(f, "ExprRef[{}]", self.0 + 1)
     }
 }
 

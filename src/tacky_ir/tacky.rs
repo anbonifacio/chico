@@ -1,7 +1,7 @@
+use crate::parser::c_ast;
 use crate::parser::c_ast::{CProgram, ExprPool, ExprRef, Statement};
-use crate::tacky_ir::tacky_ast::{
-    FunctionDefinition, Identifier, Instruction, Instructions, TackyIR, Val,
-};
+use crate::tacky_ir::tacky_ast;
+use crate::tacky_ir::tacky_ast::*;
 
 pub struct TackyGenerator<'expr> {
     expr_pool: &'expr ExprPool,
@@ -18,8 +18,8 @@ impl<'expr> TackyGenerator<'expr> {
     }
 
     pub fn generate_function_ir(&self, ast: &CProgram) -> std::io::Result<FunctionDefinition> {
-        let identifier = ast.get_fn().get_identifier().get_name();
-        let body = ast.get_fn().get_body();
+        let identifier = ast.fn_def().identifier().name();
+        let body = ast.fn_def().body();
         let instructions = self.generate_instructions(body)?;
 
         Ok(FunctionDefinition::Function(
@@ -31,7 +31,9 @@ impl<'expr> TackyGenerator<'expr> {
     fn generate_instructions(&self, body: &Statement) -> std::io::Result<Instructions> {
         let mut instructions = Instructions::new();
         match body {
-            Statement::Return(expr_ref) => self.emit_tacky(expr_ref, &mut instructions)?,
+            Statement::Return(expr_ref) => {
+                let _ = self.emit_tacky(expr_ref, &mut instructions)?;
+            }
         }
         Ok(instructions)
     }
@@ -40,14 +42,36 @@ impl<'expr> TackyGenerator<'expr> {
         &self,
         expr_ref: &ExprRef,
         instructions: &mut Instructions,
-    ) -> std::io::Result<()> {
+    ) -> std::io::Result<Val> {
         let expr = self.expr_pool.get_expr(*expr_ref);
-        match expr {
+        let dst = match expr {
             crate::parser::c_ast::Expr::Constant(c) => {
                 instructions.append(Instruction::Return(Val::Constant(*c)));
+                Val::Constant(*c)
             }
-            crate::parser::c_ast::Expr::Unary(unary_operator, inner_expr_ref) => todo!(),
+            crate::parser::c_ast::Expr::Unary(operator, inner_expr_ref) => {
+                let src = self.emit_tacky(inner_expr_ref, instructions)?;
+                let dst_name = self.make_temporary(inner_expr_ref)?;
+                let dst = Val::Var(Identifier::Name(dst_name.clone()));
+                let tacky_op = self.convert_unop(operator)?;
+                instructions.append(Instruction::Unary(tacky_op, src, dst));
+                Val::Var(Identifier::Name(dst_name))
+            }
+        };
+        Ok(dst)
+    }
+
+    fn make_temporary(&self, expr_ref: &ExprRef) -> std::io::Result<String> {
+        Ok(format!("tmp.{}", expr_ref.id()))
+    }
+
+    fn convert_unop(
+        &self,
+        operator: &c_ast::UnaryOperator,
+    ) -> std::io::Result<tacky_ast::UnaryOperator> {
+        match operator {
+            c_ast::UnaryOperator::Negate => Ok(tacky_ast::UnaryOperator::Negate),
+            c_ast::UnaryOperator::Complement => Ok(tacky_ast::UnaryOperator::Complement),
         }
-        Ok(())
     }
 }

@@ -18,9 +18,9 @@ impl<'expr> Codegen<'expr> {
     }
 
     fn generate_asm_function(&self, c_program: &CProgram) -> std::io::Result<FunctionDefinition> {
-        let c_function = c_program.get_fn();
-        let name = c_function.get_identifier().get_name();
-        let body = c_function.get_body();
+        let c_function = c_program.fn_def();
+        let name = c_function.identifier().name();
+        let body = c_function.body();
         let instructions = self.generate_asm_instructions(body)?;
         Ok(FunctionDefinition::new(
             Identifier::Name(name.to_string()),

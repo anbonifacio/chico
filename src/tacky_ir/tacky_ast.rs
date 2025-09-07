@@ -5,7 +5,7 @@ pub enum TackyIR {
 }
 
 impl TackyIR {
-    pub fn get_fn(&self) -> &FunctionDefinition {
+    pub fn fn_def(&self) -> &FunctionDefinition {
         match self {
             TackyIR::Program(fn_def) => fn_def,
         }
@@ -15,7 +15,7 @@ impl TackyIR {
 impl Display for TackyIR {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            TackyIR::Program(fn_def) => write!(f, "Program(\n{}\n)", fn_def),
+            TackyIR::Program(fn_def) => write!(f, "\nProgram:\n{}", fn_def),
         }
     }
 }
@@ -34,11 +34,11 @@ impl Instructions {
 
 impl Display for Instructions {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "Instructions(")?;
-        for (i, instruction) in self.0.iter().enumerate() {
-            writeln!(f, "  {} {}", i, instruction)?;
+        writeln!(f, "Instructions:")?;
+        for (i, instruction) in self.0.iter().rev().enumerate() {
+            write!(f, "    ({}) {}", i, instruction)?;
         }
-        write!(f, ")")
+        write!(f, "")
     }
 }
 
@@ -47,13 +47,13 @@ pub enum FunctionDefinition {
 }
 
 impl FunctionDefinition {
-    pub fn get_identifier(&self) -> &Identifier {
+    pub fn identifier(&self) -> &Identifier {
         match self {
             FunctionDefinition::Function(name, _) => name,
         }
     }
 
-    pub fn get_body(&self) -> &Instructions {
+    pub fn body(&self) -> &Instructions {
         match self {
             FunctionDefinition::Function(_, body) => body,
         }
@@ -65,8 +65,8 @@ impl Display for FunctionDefinition {
         match self {
             FunctionDefinition::Function(name, body) => write!(
                 f,
-                " Function(\n  name=\"{}\",\n  body={}\n )",
-                name.get_name(),
+                "  Function:\n   name=\"{}\",\n   body={}",
+                name.name(),
                 body
             ),
         }
@@ -78,7 +78,7 @@ pub enum Identifier {
 }
 
 impl Identifier {
-    pub fn get_name(&self) -> &str {
+    pub fn name(&self) -> &str {
         match self {
             Identifier::Name(name) => name,
         }
@@ -101,10 +101,10 @@ pub enum Instruction {
 impl Display for Instruction {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Instruction::Return(val) => write!(f, "Return(\n  {}\n  )", val),
+            Instruction::Return(val) => write!(f, "Return: {}", val),
             Instruction::Unary(unary_operator, src, dst) => write!(
                 f,
-                "Unary(\n  operator={}\n  src={}\n  dst={}\n  )",
+                "Unary:\n      operator={}\n      src={}\n      dst={}\n",
                 unary_operator, src, dst
             ),
         }
@@ -119,8 +119,8 @@ pub enum UnaryOperator {
 impl Display for UnaryOperator {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            UnaryOperator::Complement => write!(f, "~"),
-            UnaryOperator::Negate => write!(f, "-"),
+            UnaryOperator::Complement => write!(f, "'~'"),
+            UnaryOperator::Negate => write!(f, "'-'"),
         }
     }
 }
