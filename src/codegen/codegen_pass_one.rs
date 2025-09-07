@@ -2,11 +2,11 @@ use crate::codegen::asm_ast::*;
 use crate::tacky_ir::tacky_ast;
 use crate::tacky_ir::tacky_ast::{Instructions, TackyIR};
 
-pub struct Codegen;
+pub struct CodegenPassOne;
 
-impl Codegen {
+impl CodegenPassOne {
     pub fn new() -> Self {
-        Codegen {}
+        CodegenPassOne {}
     }
 
     pub fn generate_asm_ast(&self, tacky_ir: &TackyIR) -> std::io::Result<AsmProgram> {
@@ -47,8 +47,13 @@ impl Codegen {
                 asm_instructions.push(Instruction::Ret);
             }
             tacky_ast::Instruction::Unary(operator, src, dst) => {
+                let src = if let Some(src) = src.var().ok() {
+                    Operand::Pseudo(Identifier::Name(src))
+                } else {
+                    Operand::Imm(src.constant()?)
+                };
                 asm_instructions.push(Instruction::Mov(
-                    Operand::Pseudo(Identifier::Name(src.var()?)),
+                    src,
                     Operand::Pseudo(Identifier::Name(dst.var()?)),
                 ));
                 let operator = match operator {
