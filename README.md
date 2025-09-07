@@ -7,7 +7,7 @@ A toy C compiler written in Rust, based on the book ["Writing a C Compiler"](htt
 
 *Part I: The Basics*
  - [x] Chapter 1: A Minimal Compiler
- - [ ] Chapter 2: Unary Operators
+ - [x] Chapter 2: Unary Operators
  - [ ] Chapter 3: Binary Operators
  - [ ] Chapter 4: Logical and Relational Operators
  - [ ] Chapter 5: Local Variables
