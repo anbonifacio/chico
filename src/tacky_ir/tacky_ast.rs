@@ -22,6 +22,16 @@ impl Display for TackyIR {
 
 pub struct Instructions(Vec<Instruction>);
 
+impl Instructions {
+    pub fn new() -> Self {
+        Instructions(Vec::new())
+    }
+
+    pub fn append(&mut self, instruction: Instruction) {
+        self.0.push(instruction);
+    }
+}
+
 impl Display for Instructions {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "Instructions(")?;

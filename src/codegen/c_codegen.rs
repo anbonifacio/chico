@@ -29,8 +29,11 @@ impl<'expr> Codegen<'expr> {
     }
 
     fn generate_asm_instructions(&self, body: &Statement) -> std::io::Result<Vec<Instruction>> {
-        let instructions = match body {
-            Statement::Return(expr_ref) => self.generate_asm_instructions_for_expr(expr_ref)?,
+        let mut instructions = Vec::<Instruction>::new();
+        match body {
+            Statement::Return(expr_ref) => {
+                self.generate_asm_instructions_for_expr(expr_ref, &mut instructions)?
+            }
         };
         Ok(instructions)
     }
@@ -38,8 +41,8 @@ impl<'expr> Codegen<'expr> {
     fn generate_asm_instructions_for_expr(
         &self,
         expr_ref: &ExprRef,
-    ) -> std::io::Result<Vec<Instruction>> {
-        let mut instructions = Vec::new();
+        instructions: &mut Vec<Instruction>,
+    ) -> std::io::Result<()> {
         let expr = self.expr_pool.get_expr(*expr_ref);
         match expr {
             Expr::Constant(int) => {
@@ -51,6 +54,6 @@ impl<'expr> Codegen<'expr> {
             }
             Expr::Unary(_, _) => todo!("Implement unary expression"),
         }
-        Ok(instructions)
+        Ok(())
     }
 }
