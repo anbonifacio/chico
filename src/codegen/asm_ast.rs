@@ -36,7 +36,7 @@ impl FunctionDefinition {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub enum Identifier {
     Name(String),
 }
@@ -49,7 +49,7 @@ impl Identifier {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Instruction {
     Mov(Operand, Operand),
     Unary(UnaryOperator, Operand),
@@ -57,13 +57,13 @@ pub enum Instruction {
     Ret,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum UnaryOperator {
     Neg,
     Not,
 }
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub enum Operand {
     Imm(i32),
     Reg(RegisterType),
@@ -105,7 +105,7 @@ impl Operand {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum RegisterType {
     AX,
     R10,

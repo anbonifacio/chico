@@ -100,8 +100,7 @@ fn main() -> std::io::Result<()> {
 
     let mut codegen = Codegen::new();
     let asm_program = codegen.generate_asm_ast(&tacky_ir)?;
-    log::debug!("Generated ASM AST: {:?}", asm_program.0);
-    log::debug!("Generated Stack Offset: {:?}", asm_program.1);
+    log::debug!("Generated ASM AST: {:?}", asm_program);
 
     if stage == Stage::Codegen {
         cleanup(&cli, &stage, &preprocessed, &assembled);
@@ -109,7 +108,7 @@ fn main() -> std::io::Result<()> {
     }
 
     let mut emitter = CodeEmitter::new(&assembled)?;
-    emitter.emit_asm(&asm_program.0)?;
+    emitter.emit_asm(&asm_program)?;
 
     if stage == Stage::Emit {
         cleanup(&cli, &stage, &preprocessed, &assembled);

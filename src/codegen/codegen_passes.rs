@@ -5,7 +5,7 @@ use crate::tacky_ir::tacky_ast;
 use crate::tacky_ir::tacky_ast::{Instructions, TackyIR};
 
 #[derive(Debug)]
-pub struct StackOffset(i32);
+struct StackOffset(i32);
 
 pub struct Codegen {
     stack_offset: i32,
@@ -20,16 +20,16 @@ impl Codegen {
         }
     }
 
-    pub fn generate_asm_ast(
-        &mut self,
-        tacky_ir: &TackyIR,
-    ) -> std::io::Result<(AsmProgram, StackOffset)> {
+    pub fn generate_asm_ast(&mut self, tacky_ir: &TackyIR) -> std::io::Result<AsmProgram> {
         // Pass 1: generate asm AST from tacky IR
         let asm_function = self.generate_asm_function(tacky_ir)?;
-        
+
         // Pass 2: replace pseudo registers
-        let asm_program = self.replace_pseudo_registers(&AsmProgram::Program(asm_function))?;
-        Ok(asm_program)
+        let asm_program_and_stack =
+            self.replace_pseudo_registers(&AsmProgram::Program(asm_function))?;
+
+        // Pass 3: fixing up instructions and return asm_program
+        self.fixup_instructions(&asm_program_and_stack.0, &asm_program_and_stack.1)
     }
 
     fn generate_asm_function(&self, tacky_ir: &TackyIR) -> std::io::Result<FunctionDefinition> {
@@ -158,5 +158,33 @@ impl Codegen {
     fn set_stack_offset(&mut self, offset: i32) -> i32 {
         self.stack_offset = offset;
         self.stack_offset
+    }
+
+    fn fixup_instructions(
+        &self,
+        asm_program: &AsmProgram,
+        stack_offset: &StackOffset,
+    ) -> std::io::Result<AsmProgram> {
+        let fn_def = asm_program.fn_def();
+        let identifier = Identifier::Name(fn_def.name());
+        let instructions = fn_def.instructions();
+        let mut new_instructions = Vec::new();
+        new_instructions.push(Instruction::AllocateStack(stack_offset.0));
+        
+        for instruction in instructions {
+            let new_instruction = match instruction {
+                Instruction::Mov(src, dst) => {
+                    // TODO: check if both src and dst are Stack, if so split in 2 movs using register R10
+                    Instruction::Mov(src, dst)
+                }
+                _ => *instruction,
+            };
+            new_instructions.push(new_instruction);
+        }
+        
+        Ok(AsmProgram::Program(FunctionDefinition::new(
+            identifier,
+            new_instructions,
+        )))
     }
 }
