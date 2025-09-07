@@ -30,6 +30,10 @@ impl Instructions {
     pub fn append(&mut self, instruction: Instruction) {
         self.0.push(instruction);
     }
+
+    pub fn as_slice(&self) -> &[Instruction] {
+        self.0.as_slice()
+    }
 }
 
 impl Display for Instructions {
@@ -128,6 +132,25 @@ impl Display for UnaryOperator {
 pub enum Val {
     Constant(i32),
     Var(Identifier),
+}
+
+impl Val {
+    pub fn constant(&self) -> std::io::Result<i32> {
+        match self {
+            Val::Constant(value) => Ok(*value),
+            _ => Err(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                "Not a Constant",
+            )),
+        }
+    }
+
+    pub fn var(&self) -> std::io::Result<String> {
+        match self {
+            Val::Var(Identifier::Name(name)) => Ok(name.clone()),
+            _ => Err(std::io::Error::new(std::io::ErrorKind::Other, "Not a Var")),
+        }
+    }
 }
 
 impl Display for Val {

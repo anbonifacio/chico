@@ -42,13 +42,17 @@ impl CodeEmitter {
                                         Operand::Imm(int) => {
                                             format!("${}", int)
                                         }
-                                        Operand::Register(_) => unimplemented!(),
+                                        Operand::Reg(_) => unimplemented!(),
+                                        Operand::Pseudo(identifier) => todo!(),
+                                        Operand::Stack(_) => todo!(),
                                     };
                                     let dst = match dst {
                                         Operand::Imm(_) => unimplemented!(),
-                                        Operand::Register(reg) => {
+                                        Operand::Reg(reg) => {
                                             format!("%{}", reg)
                                         }
+                                        Operand::Pseudo(identifier) => todo!(),
+                                        Operand::Stack(_) => todo!(),
                                     };
                                     self.output.write_all(
                                         format!("    movl   {}, {}\n", src, dst).as_bytes(),
@@ -57,6 +61,8 @@ impl CodeEmitter {
                                 Instruction::Ret => {
                                     self.output.write_all(b"    ret\n")?;
                                 }
+                                Instruction::Unary(unary_operator, operand) => todo!(),
+                                Instruction::AllocateStack(_) => todo!(),
                             }
                         }
                     }

@@ -94,6 +94,7 @@ impl ExprRef {
 
 impl Display for ExprRef {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        // FIXME: how to get the real Expr from ExprPool for each index [0..self.0]?
         write!(f, "ExprRef[{}]", self.0 + 1)
     }
 }
@@ -138,8 +139,8 @@ pub enum UnaryOperator {
 impl Display for UnaryOperator {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            UnaryOperator::Complement => write!(f, "~"),
-            UnaryOperator::Negate => write!(f, "-"),
+            UnaryOperator::Complement => write!(f, "'~'"),
+            UnaryOperator::Negate => write!(f, "'-'"),
         }
     }
 }

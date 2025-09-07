@@ -8,7 +8,7 @@ mod emitter;
 mod lexer;
 mod parser;
 mod tacky_ir;
-use crate::codegen::c_codegen::Codegen;
+use crate::codegen::codegen_pass_one::Codegen;
 use crate::emitter::code_emitter::CodeEmitter;
 use crate::lexer::c_lexer::Lexer;
 use crate::parser::c_ast::ExprPool;
@@ -98,8 +98,8 @@ fn main() -> std::io::Result<()> {
         return Ok(());
     }
 
-    let codegen = Codegen::new(&mut expr_pool);
-    let code = codegen.generate_asm_ast(&c_program)?;
+    let codegen = Codegen::new();
+    let code = codegen.generate_asm_ast(&tacky_ir)?;
     log::debug!("Generated ASM AST: {:?}", code);
 
     if stage == Stage::Codegen {
