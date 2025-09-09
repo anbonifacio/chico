@@ -138,8 +138,7 @@ impl Val {
     pub fn constant(&self) -> std::io::Result<i32> {
         match self {
             Val::Constant(value) => Ok(*value),
-            _ => Err(std::io::Error::new(
-                std::io::ErrorKind::Other,
+            _ => Err(std::io::Error::other(
                 "Not a Constant",
             )),
         }
@@ -148,7 +147,7 @@ impl Val {
     pub fn var(&self) -> std::io::Result<String> {
         match self {
             Val::Var(Identifier::Name(name)) => Ok(name.clone()),
-            _ => Err(std::io::Error::new(std::io::ErrorKind::Other, "Not a Var")),
+            _ => Err(std::io::Error::other("Not a Var")),
         }
     }
 }

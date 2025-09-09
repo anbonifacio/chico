@@ -65,7 +65,7 @@ impl Codegen {
                 asm_instructions.push(Instruction::Ret);
             }
             tacky_ast::Instruction::Unary(operator, src, dst) => {
-                let src = if let Some(src) = src.var().ok() {
+                let src = if let Ok(src) = src.var() {
                     Operand::Pseudo(Identifier::Name(src))
                 } else {
                     Operand::Imm(src.constant()?)
@@ -140,7 +140,7 @@ impl Codegen {
     fn calculate_stack_location(&mut self, operand: Operand) -> std::io::Result<Operand> {
         if self.pseudo_reg_map.contains_key(&operand) {
             let stack_location = self.pseudo_reg_map.get(&operand).ok_or_else(|| {
-                std::io::Error::new(std::io::ErrorKind::Other, "Pseudo register not found")
+                std::io::Error::other("Pseudo register not found")
             })?;
             Ok(Operand::Stack(stack_location.0))
         } else {
@@ -170,18 +170,24 @@ impl Codegen {
         let instructions = fn_def.instructions();
         let mut new_instructions = Vec::new();
         new_instructions.push(Instruction::AllocateStack(stack_offset.0));
-        
+
         for instruction in instructions {
-            let new_instruction = match instruction {
+            match instruction {
                 Instruction::Mov(src, dst) => {
-                    // TODO: check if both src and dst are Stack, if so split in 2 movs using register R10
-                    Instruction::Mov(src, dst)
+                    // check if both src and dst are Stack, if so split in 2 movs using register R10
+                    match (src, dst) {
+                        (Operand::Stack(_), Operand::Stack(_)) => {
+                            let r10 = Operand::Reg(RegisterType::R10);
+                            new_instructions.push(Instruction::Mov(src.clone(), r10.clone()));
+                            new_instructions.push(Instruction::Mov(r10.clone(), dst.clone()));
+                        }
+                        _ => new_instructions.push(Instruction::Mov(src.clone(), dst.clone())),
+                    }
                 }
-                _ => *instruction,
+                _ => new_instructions.push(instruction.clone()),
             };
-            new_instructions.push(new_instruction);
         }
-        
+
         Ok(AsmProgram::Program(FunctionDefinition::new(
             identifier,
             new_instructions,
