@@ -90,7 +90,7 @@ fn main() -> std::io::Result<()> {
     }
 
     let tacky = TackyGenerator::new(&expr_pool);
-    let tacky_ir = tacky.generate_ir(&c_program)?;
+    let tacky_ir = tacky.generate_ir(&c_program);
     log::debug!("Generated Tacky IR: {}", tacky_ir);
 
     if stage == Stage::Tacky {

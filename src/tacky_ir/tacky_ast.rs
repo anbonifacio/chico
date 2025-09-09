@@ -39,7 +39,7 @@ impl Instructions {
 impl Display for Instructions {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "Instructions:")?;
-        for (i, instruction) in self.0.iter().rev().enumerate() {
+        for (i, instruction) in self.0.iter().enumerate() {
             write!(f, "    ({}) {}", i, instruction)?;
         }
         write!(f, "")

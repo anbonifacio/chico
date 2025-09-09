@@ -58,10 +58,20 @@ impl Codegen {
     ) -> std::io::Result<()> {
         match instruction {
             tacky_ast::Instruction::Return(val) => {
-                asm_instructions.push(Instruction::Mov(
-                    Operand::Imm(val.constant()?),
-                    Operand::Reg(RegisterType::AX),
-                ));
+                match val {
+                    tacky_ast::Val::Constant(int) => {
+                        asm_instructions.push(Instruction::Mov(
+                            Operand::Imm(*int),
+                            Operand::Reg(RegisterType::AX),
+                        ));
+                    }
+                    tacky_ast::Val::Var(val) => {
+                        asm_instructions.push(Instruction::Mov(
+                            Operand::Pseudo(Identifier::Name(val.name().to_string())),
+                            Operand::Reg(RegisterType::AX),
+                        ));
+                    }
+                }
                 asm_instructions.push(Instruction::Ret);
             }
             tacky_ast::Instruction::Unary(operator, src, dst) => {

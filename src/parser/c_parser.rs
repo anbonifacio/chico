@@ -85,7 +85,6 @@ impl<'expr> CParser<'expr> {
         tokens_iter: &mut Peekable<Iter<'expr, Token>>,
     ) -> std::io::Result<ExprRef> {
         if let Some(next_token) = tokens_iter.peek() {
-            log::debug!("Next token: {:?}", next_token);
             match next_token.token_type {
                 TokenType::Constant => {
                     let token = self.extract_token(tokens_iter)?;
@@ -96,7 +95,6 @@ impl<'expr> CParser<'expr> {
                 }
                 TokenType::Tilde | TokenType::Hyphen => {
                     let token = self.extract_token(tokens_iter)?;
-                    log::debug!("This token: {:?}", token);
                     let operator = self.parse_unop(token)?;
                     let inner_expr = self.parse_expression(tokens_iter)?;
                     let expr_ref = self.expr_pool.add_expr(Expr::Unary(operator, inner_expr));

@@ -83,7 +83,7 @@ impl Display for Statement {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub struct ExprRef(u32);
 
 impl ExprRef {
@@ -99,6 +99,7 @@ impl Display for ExprRef {
     }
 }
 
+#[derive(Debug)]
 pub struct ExprPool(Vec<Expr>);
 
 impl ExprPool {
@@ -117,6 +118,7 @@ impl ExprPool {
     }
 }
 
+#[derive(Debug)]
 pub enum Expr {
     Constant(i32),
     Unary(UnaryOperator, ExprRef),
@@ -131,6 +133,7 @@ impl Display for Expr {
     }
 }
 
+#[derive(Debug)]
 pub enum UnaryOperator {
     Complement,
     Negate,
