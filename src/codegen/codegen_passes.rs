@@ -15,7 +15,7 @@ pub struct Codegen {
 impl Codegen {
     pub fn new() -> Self {
         Codegen {
-            stack_offset: 0,
+            stack_offset: -4,
             pseudo_reg_map: HashMap::new(),
         }
     }
@@ -144,7 +144,7 @@ impl Codegen {
             Ok(Operand::Stack(stack_location.0))
         } else {
             let offset = self.stack_offset;
-            let new_offset = self.set_stack_offset(offset - 4);
+            let new_offset = self.set_stack_offset(offset);
             self.pseudo_reg_map.insert(operand, StackOffset(new_offset));
             Ok(Operand::Stack(offset))
         }
@@ -155,7 +155,7 @@ impl Codegen {
     }
 
     fn set_stack_offset(&mut self, offset: i32) -> i32 {
-        self.stack_offset = offset;
+        self.stack_offset = offset - 4;
         self.stack_offset
     }
 
