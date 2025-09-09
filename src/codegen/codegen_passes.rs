@@ -139,9 +139,10 @@ impl Codegen {
 
     fn calculate_stack_location(&mut self, operand: Operand) -> std::io::Result<Operand> {
         if self.pseudo_reg_map.contains_key(&operand) {
-            let stack_location = self.pseudo_reg_map.get(&operand).ok_or_else(|| {
-                std::io::Error::other("Pseudo register not found")
-            })?;
+            let stack_location = self
+                .pseudo_reg_map
+                .get(&operand)
+                .ok_or_else(|| std::io::Error::other("Pseudo register not found"))?;
             Ok(Operand::Stack(stack_location.0))
         } else {
             let offset = self.stack_offset;

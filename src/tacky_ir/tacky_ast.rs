@@ -138,9 +138,7 @@ impl Val {
     pub fn constant(&self) -> std::io::Result<i32> {
         match self {
             Val::Constant(value) => Ok(*value),
-            _ => Err(std::io::Error::other(
-                "Not a Constant",
-            )),
+            _ => Err(std::io::Error::other("Not a Constant")),
         }
     }
 
