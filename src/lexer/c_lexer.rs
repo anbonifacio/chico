@@ -29,7 +29,7 @@ impl Lexer {
                 if trimmed_line
                     .chars()
                     .nth(position)
-                    .map_or(false, |c| c.is_whitespace())
+                    .is_some_and(|c| c.is_whitespace())
                 {
                     position += 1;
                     continue;
@@ -60,12 +60,12 @@ fn find_match(line: &str, position: usize) -> Option<Token> {
     let mut best_match: Option<(usize, &str, usize, &TokenType)> = None;
 
     for (re, token_type) in PATTERNS.iter() {
-        if let Some(matched) = re.find(text) {
-            if matched.start() == 0 {
-                let matched_len = matched.len();
-                if best_match.map_or(true, |(len, _, _, _)| matched_len > len) {
-                    best_match = Some((matched_len, matched.as_str(), matched.end(), token_type));
-                }
+        if let Some(matched) = re.find(text)
+            && matched.start() == 0
+        {
+            let matched_len = matched.len();
+            if best_match.is_none_or(|(len, _, _, _)| matched_len > len) {
+                best_match = Some((matched_len, matched.as_str(), matched.end(), token_type));
             }
         }
     }

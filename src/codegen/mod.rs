@@ -1,2 +1,2 @@
 pub(crate) mod asm_ast;
-pub(crate) mod codegen;
+pub(crate) mod codegen_passes;
