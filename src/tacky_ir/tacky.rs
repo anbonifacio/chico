@@ -45,8 +45,8 @@ impl<'expr> TackyGenerator<'expr> {
                 let dst_name = self.make_temporary(inner_expr_ref);
                 let dst = Val::Var(Identifier::Name(dst_name.clone()));
                 let tacky_op = self.convert_unop(operator);
-                instructions.append(Instruction::Unary(tacky_op, src, dst));
-                Val::Var(Identifier::Name(dst_name))
+                instructions.append(Instruction::Unary(tacky_op, src, dst.clone()));
+                dst
             }
             crate::parser::c_ast::Expr::Constant(c) => Val::Constant(*c),
         }

@@ -126,7 +126,7 @@ impl Codegen {
             };
             new_instructions.push(new_instruction);
         }
-        let stack_offset = self.get_stack_offset()?;
+        let stack_offset = self.get_current_stack_offset();
         Ok((
             AsmProgram::Program(FunctionDefinition::new(identifier, new_instructions)),
             StackOffset(stack_offset),
@@ -153,19 +153,19 @@ impl Codegen {
                 .ok_or_else(|| std::io::Error::other("Pseudo register not found"))?;
             Ok(Operand::Stack(stack_location.0))
         } else {
-            let offset = self.stack_offset;
-            let new_offset = self.set_stack_offset(offset);
-            self.pseudo_reg_map.insert(operand, StackOffset(new_offset));
+            let offset = self.get_current_stack_offset();
+            self.pseudo_reg_map.insert(operand, StackOffset(offset));
+            self.increase_stack_offset();
             Ok(Operand::Stack(offset))
         }
     }
 
-    fn get_stack_offset(&self) -> std::io::Result<i32> {
-        Ok(self.stack_offset)
+    fn get_current_stack_offset(&self) -> i32 {
+        self.stack_offset
     }
 
-    fn set_stack_offset(&mut self, offset: i32) -> i32 {
-        self.stack_offset = offset - 4;
+    fn increase_stack_offset(&mut self) -> i32 {
+        self.stack_offset -= 4;
         self.stack_offset
     }
 

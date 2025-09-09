@@ -77,6 +77,7 @@ impl Display for FunctionDefinition {
     }
 }
 
+#[derive(Clone)]
 pub enum Identifier {
     Name(String),
 }
@@ -129,6 +130,7 @@ impl Display for UnaryOperator {
     }
 }
 
+#[derive(Clone)]
 pub enum Val {
     Constant(i32),
     Var(Identifier),
