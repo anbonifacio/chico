@@ -98,22 +98,8 @@ impl Codegen {
         for instruction in instructions {
             let new_instruction = match instruction {
                 Instruction::Mov(src, dst) => {
-                    let src = match src.get_type()? {
-                        Operand::Imm(int) => Operand::Imm(int),
-                        Operand::Reg(register_type) => Operand::Reg(register_type),
-                        Operand::Pseudo(identifier) => {
-                            self.calculate_stack_location(Operand::Pseudo(identifier))?
-                        }
-                        Operand::Stack(offset) => Operand::Stack(offset),
-                    };
-                    let dst = match dst.get_type()? {
-                        Operand::Imm(int) => Operand::Imm(int),
-                        Operand::Reg(register_type) => Operand::Reg(register_type),
-                        Operand::Pseudo(identifier) => {
-                            self.calculate_stack_location(Operand::Pseudo(identifier))?
-                        }
-                        Operand::Stack(offset) => Operand::Stack(offset),
-                    };
+                    let src = self.match_operand(src)?;
+                    let dst = self.match_operand(dst)?;
                     Instruction::Mov(src, dst)
                 }
                 Instruction::Unary(operator, pseudo_reg) => {
@@ -135,6 +121,18 @@ impl Codegen {
             AsmProgram::Program(FunctionDefinition::new(identifier, new_instructions)),
             StackOffset(stack_offset),
         ))
+    }
+
+    fn match_operand(&mut self, operand: &Operand) -> std::io::Result<Operand> {
+        let op = match operand.get_type()? {
+            Operand::Imm(int) => Operand::Imm(int),
+            Operand::Reg(register_type) => Operand::Reg(register_type),
+            Operand::Pseudo(identifier) => {
+                self.calculate_stack_location(Operand::Pseudo(identifier))?
+            }
+            Operand::Stack(offset) => Operand::Stack(offset),
+        };
+        Ok(op)
     }
 
     fn calculate_stack_location(&mut self, operand: Operand) -> std::io::Result<Operand> {
