@@ -20,8 +20,13 @@ static SEMICOLON: LazyLock<Regex> = LazyLock::new(|| Regex::new(r";").unwrap());
 static TILDE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"~").unwrap());
 static HYPHEN: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"-").unwrap());
 static TWO_HYPHENS: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"--").unwrap());
+static PLUS: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\+").unwrap());
+static PLUS_PLUS: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?:\+\+)").unwrap());
+static ASTERISK: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\*").unwrap());
+static FORWARD_SLASH: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"/").unwrap());
+static PERCENT: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"%").unwrap());
 
-static PATTERNS: LazyLock<[(&Regex, TokenType); 13]> = LazyLock::new(|| {
+static PATTERNS: LazyLock<[(&Regex, TokenType); 18]> = LazyLock::new(|| {
     [
         (&*INT_KEYWORD, TokenType::IntKeyword),
         (&*VOID_KEYWORD, TokenType::VoidKeyword),
@@ -36,5 +41,10 @@ static PATTERNS: LazyLock<[(&Regex, TokenType); 13]> = LazyLock::new(|| {
         (&*TILDE, TokenType::Tilde),
         (&*HYPHEN, TokenType::Hyphen),
         (&*TWO_HYPHENS, TokenType::TwoHyphens),
+        (&*PLUS, TokenType::Plus),
+        (&*PLUS_PLUS, TokenType::PlusPlus),
+        (&*ASTERISK, TokenType::Asterisk),
+        (&*FORWARD_SLASH, TokenType::ForwardSlash),
+        (&*PERCENT, TokenType::Percent)
     ]
 });
