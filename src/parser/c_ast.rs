@@ -122,6 +122,7 @@ impl ExprPool {
 pub enum Expr {
     Constant(i32),
     Unary(UnaryOperator, ExprRef),
+    Binary(BinaryOperator, ExprRef, ExprRef),
 }
 
 impl Display for Expr {
@@ -129,6 +130,7 @@ impl Display for Expr {
         match self {
             Expr::Constant(value) => write!(f, "{}", value),
             Expr::Unary(op, expr) => write!(f, "{}({})", op, expr),
+            Expr::Binary(op, left, right) => write!(f, "({} {} {})", left, op, right),
         }
     }
 }
@@ -144,6 +146,27 @@ impl Display for UnaryOperator {
         match self {
             UnaryOperator::Complement => write!(f, "'~'"),
             UnaryOperator::Negate => write!(f, "'-'"),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum BinaryOperator {
+    Add,
+    Subtract,
+    Multiply,
+    Divide,
+    Reminder,
+}
+
+impl Display for BinaryOperator {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            BinaryOperator::Add => write!(f, "'+'"),
+            BinaryOperator::Subtract => write!(f, "'-'"),
+            BinaryOperator::Multiply => write!(f, "'*'"),
+            BinaryOperator::Divide => write!(f, "'/'"),
+            BinaryOperator::Reminder => write!(f, "'%'"),
         }
     }
 }
