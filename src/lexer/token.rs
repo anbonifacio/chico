@@ -13,6 +13,11 @@ pub enum TokenType {
     Tilde,
     Hyphen,
     TwoHyphens,
+    Plus,
+    PlusPlus,
+    Asterisk,
+    ForwardSlash,
+    Percent,
 }
 
 #[derive(Debug, PartialEq)]
