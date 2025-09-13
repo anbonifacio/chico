@@ -152,21 +152,21 @@ impl Display for UnaryOperator {
 
 #[derive(Debug)]
 pub enum BinaryOperator {
-    Add,
-    Subtract,
-    Multiply,
-    Divide,
-    Reminder,
+    Add(u8),
+    Subtract(u8),
+    Multiply(u8),
+    Divide(u8),
+    Reminder(u8),
 }
 
 impl Display for BinaryOperator {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            BinaryOperator::Add => write!(f, "'+'"),
-            BinaryOperator::Subtract => write!(f, "'-'"),
-            BinaryOperator::Multiply => write!(f, "'*'"),
-            BinaryOperator::Divide => write!(f, "'/'"),
-            BinaryOperator::Reminder => write!(f, "'%'"),
+            BinaryOperator::Add(_) => write!(f, "'+'"),
+            BinaryOperator::Subtract(_) => write!(f, "'-'"),
+            BinaryOperator::Multiply(_) => write!(f, "'*'"),
+            BinaryOperator::Divide(_) => write!(f, "'/'"),
+            BinaryOperator::Reminder(_) => write!(f, "'%'"),
         }
     }
 }

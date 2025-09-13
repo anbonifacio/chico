@@ -40,7 +40,7 @@ impl<'expr> TackyGenerator<'expr> {
     fn emit_tacky(&self, expr_ref: &ExprRef, instructions: &mut Instructions) -> Val {
         let expr = self.expr_pool.get_expr(*expr_ref);
         match expr {
-            crate::parser::c_ast::Expr::Unary(operator, inner_expr_ref) => {
+            c_ast::Expr::Unary(operator, inner_expr_ref) => {
                 let src = self.emit_tacky(inner_expr_ref, instructions);
                 let dst_name = self.make_temporary(inner_expr_ref);
                 let dst = Val::Var(Identifier::Name(dst_name.clone()));
@@ -48,7 +48,10 @@ impl<'expr> TackyGenerator<'expr> {
                 instructions.append(Instruction::Unary(tacky_op, src, dst.clone()));
                 dst
             }
-            crate::parser::c_ast::Expr::Constant(c) => Val::Constant(*c),
+            c_ast::Expr::Binary(binary_operator, left, right) => {
+                todo!()
+            }
+            c_ast::Expr::Constant(c) => Val::Constant(*c),
         }
     }
 

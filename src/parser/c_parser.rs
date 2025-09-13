@@ -75,12 +75,12 @@ impl<'expr> CParser<'expr> {
         tokens_iter: &mut Peekable<Iter<'expr, Token>>,
     ) -> std::io::Result<Statement> {
         self.expect(TokenType::ReturnKeyword, tokens_iter)?;
-        let expression = self.parse_expression(tokens_iter)?;
+        let expression = self.parse_factor(tokens_iter)?;
         self.expect(TokenType::Semicolon, tokens_iter)?;
         Ok(Statement::Return(expression))
     }
 
-    fn parse_expression(
+    fn parse_factor(
         &mut self,
         tokens_iter: &mut Peekable<Iter<'expr, Token>>,
     ) -> std::io::Result<ExprRef> {
@@ -96,7 +96,7 @@ impl<'expr> CParser<'expr> {
                 TokenType::Tilde | TokenType::Hyphen => {
                     let token = self.extract_token(tokens_iter)?;
                     let operator = self.parse_unop(token)?;
-                    let inner_expr = self.parse_expression(tokens_iter)?;
+                    let inner_expr = self.parse_factor(tokens_iter)?;
                     let expr_ref = self.expr_pool.add_expr(Expr::Unary(operator, inner_expr));
                     Ok(expr_ref)
                 }
@@ -108,16 +108,52 @@ impl<'expr> CParser<'expr> {
                 }
                 _ => Err(std::io::Error::new(
                     std::io::ErrorKind::InvalidData,
-                    format!("Malformed expression, found: {:?}", next_token.token_type),
+                    format!("Malformed factor, found: {:?}", next_token.token_type),
                 )),
             }
         } else {
             Err(std::io::Error::new(
                 std::io::ErrorKind::InvalidData,
                 format!(
-                    "Malformed expression, found: {:?}",
+                    "Malformed factor, found: {:?}",
                     tokens_iter.peekable().peek()
                 ),
+            ))
+        }
+    }
+    
+    // FIXME: fix iter consumption and add op precedence
+    fn parse_expression(
+        &mut self,
+        tokens_iter: &mut Peekable<Iter<'expr, Token>>,
+    ) -> std::io::Result<ExprRef> {
+        let mut left = self.parse_factor(tokens_iter)?;
+        if let Some(mut next_token) = tokens_iter.peek() {
+            loop {
+                match next_token {
+                    Token { token_type: TokenType::Plus | TokenType::Hyphen, .. } => {
+                        let operator = self.parse_binop(tokens_iter)?;
+                        let right = self.parse_factor(tokens_iter)?;
+                        left = self.expr_pool.add_expr(Expr::Binary(operator, left, right));
+                        next_token = if let Some(next_token) = tokens_iter.peek() {
+                            next_token
+                        } else {
+                            let _ = self.extract_token(tokens_iter)?;
+                            break
+                        };
+                    }
+                    _ => break
+                }
+            }
+            Ok(left)
+            
+        } else {
+            Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                format!(
+                    "Malformed factor, found: {:?}",
+                    tokens_iter.peekable().peek()
+                )
             ))
         }
     }
@@ -169,5 +205,25 @@ impl<'expr> CParser<'expr> {
         tokens_iter.next().ok_or_else(|| {
             std::io::Error::new(std::io::ErrorKind::InvalidData, "Unexpected end of input")
         })
+    }
+
+    fn parse_binop(&self, tokens_iter: &mut Peekable<Iter<'expr, Token>>) -> std::io::Result<BinaryOperator> {
+        match tokens_iter.next() {
+            Some(token) => match token.token_type {
+                TokenType::Plus => Ok(BinaryOperator::Add(45)),
+                TokenType::Hyphen => Ok(BinaryOperator::Subtract(45)),
+                TokenType::Asterisk => Ok(BinaryOperator::Multiply(50)),
+                TokenType::ForwardSlash => Ok(BinaryOperator::Divide(50)),
+                TokenType::Percent => Ok(BinaryOperator::Reminder(50)),
+                _ => Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidInput,
+                    format!("Expected binary operator, found {:?}", token.token_type),
+                )),
+            },
+            None => Err(std::io::Error::new(
+                std::io::ErrorKind::UnexpectedEof,
+                "Unexpected end of input",
+            )),
+        }
     }
 }
