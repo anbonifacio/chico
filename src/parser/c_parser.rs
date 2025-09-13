@@ -75,7 +75,7 @@ impl<'expr> CParser<'expr> {
         tokens_iter: &mut Peekable<Iter<'expr, Token>>,
     ) -> std::io::Result<Statement> {
         self.expect(TokenType::ReturnKeyword, tokens_iter)?;
-        let expression = self.parse_factor(tokens_iter)?;
+        let expression = self.parse_expression(tokens_iter)?;
         self.expect(TokenType::Semicolon, tokens_iter)?;
         Ok(Statement::Return(expression))
     }
@@ -91,6 +91,7 @@ impl<'expr> CParser<'expr> {
                     let expr_ref = self
                         .expr_pool
                         .add_expr(Expr::Constant(self.parse_as_i32(token)?));
+                    log::debug!("Parsed constant: {}", self.expr_pool.get_expr(expr_ref));
                     Ok(expr_ref)
                 }
                 TokenType::Tilde | TokenType::Hyphen => {
@@ -98,12 +99,20 @@ impl<'expr> CParser<'expr> {
                     let operator = self.parse_unop(token)?;
                     let inner_expr = self.parse_factor(tokens_iter)?;
                     let expr_ref = self.expr_pool.add_expr(Expr::Unary(operator, inner_expr));
+                    log::debug!(
+                        "Parsed unary expression: {}",
+                        self.expr_pool.get_expr(expr_ref)
+                    );
                     Ok(expr_ref)
                 }
                 TokenType::OpenParenthesis => {
                     self.expect(TokenType::OpenParenthesis, tokens_iter)?;
                     let expr_ref = self.parse_expression(tokens_iter)?;
                     self.expect(TokenType::CloseParenthesis, tokens_iter)?;
+                    log::debug!(
+                        "Parsed parenthesized expression: ({})",
+                        self.expr_pool.get_expr(expr_ref)
+                    );
                     Ok(expr_ref)
                 }
                 _ => Err(std::io::Error::new(
@@ -122,12 +131,13 @@ impl<'expr> CParser<'expr> {
         }
     }
 
-    // FIXME: fix iter consumption and add op precedence
+    // FIXME: add op precedence
     fn parse_expression(
         &mut self,
         tokens_iter: &mut Peekable<Iter<'expr, Token>>,
     ) -> std::io::Result<ExprRef> {
         let mut left = self.parse_factor(tokens_iter)?;
+        log::debug!("Parsed left factor: {}", self.expr_pool.get_expr(left));
         if let Some(mut next_token) = tokens_iter.peek() {
             while let Token {
                 token_type: TokenType::Plus | TokenType::Hyphen,
@@ -135,15 +145,18 @@ impl<'expr> CParser<'expr> {
             } = next_token
             {
                 let operator = self.parse_binop(tokens_iter)?;
+                log::debug!("Parsed binary operator: {:?}", operator);
                 let right = self.parse_factor(tokens_iter)?;
+                log::debug!("Parsed right factor: {}", self.expr_pool.get_expr(right));
                 left = self.expr_pool.add_expr(Expr::Binary(operator, left, right));
                 next_token = if let Some(next_token) = tokens_iter.peek() {
+                    log::debug!("Next token: {:?}", next_token);
                     next_token
                 } else {
-                    let _ = self.extract_token(tokens_iter)?;
                     break;
                 };
             }
+            log::debug!("Return expression: {:?}", self.expr_pool.get_expr(left));
             Ok(left)
         } else {
             Err(std::io::Error::new(
