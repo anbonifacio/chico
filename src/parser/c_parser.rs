@@ -121,7 +121,7 @@ impl<'expr> CParser<'expr> {
             ))
         }
     }
-    
+
     // FIXME: fix iter consumption and add op precedence
     fn parse_expression(
         &mut self,
@@ -129,31 +129,29 @@ impl<'expr> CParser<'expr> {
     ) -> std::io::Result<ExprRef> {
         let mut left = self.parse_factor(tokens_iter)?;
         if let Some(mut next_token) = tokens_iter.peek() {
-            loop {
-                match next_token {
-                    Token { token_type: TokenType::Plus | TokenType::Hyphen, .. } => {
-                        let operator = self.parse_binop(tokens_iter)?;
-                        let right = self.parse_factor(tokens_iter)?;
-                        left = self.expr_pool.add_expr(Expr::Binary(operator, left, right));
-                        next_token = if let Some(next_token) = tokens_iter.peek() {
-                            next_token
-                        } else {
-                            let _ = self.extract_token(tokens_iter)?;
-                            break
-                        };
-                    }
-                    _ => break
-                }
+            while let Token {
+                token_type: TokenType::Plus | TokenType::Hyphen,
+                ..
+            } = next_token
+            {
+                let operator = self.parse_binop(tokens_iter)?;
+                let right = self.parse_factor(tokens_iter)?;
+                left = self.expr_pool.add_expr(Expr::Binary(operator, left, right));
+                next_token = if let Some(next_token) = tokens_iter.peek() {
+                    next_token
+                } else {
+                    let _ = self.extract_token(tokens_iter)?;
+                    break;
+                };
             }
             Ok(left)
-            
         } else {
             Err(std::io::Error::new(
                 std::io::ErrorKind::InvalidData,
                 format!(
                     "Malformed factor, found: {:?}",
                     tokens_iter.peekable().peek()
-                )
+                ),
             ))
         }
     }
@@ -207,7 +205,10 @@ impl<'expr> CParser<'expr> {
         })
     }
 
-    fn parse_binop(&self, tokens_iter: &mut Peekable<Iter<'expr, Token>>) -> std::io::Result<BinaryOperator> {
+    fn parse_binop(
+        &self,
+        tokens_iter: &mut Peekable<Iter<'expr, Token>>,
+    ) -> std::io::Result<BinaryOperator> {
         match tokens_iter.next() {
             Some(token) => match token.token_type {
                 TokenType::Plus => Ok(BinaryOperator::Add(45)),

@@ -45,6 +45,6 @@ static PATTERNS: LazyLock<[(&Regex, TokenType); 18]> = LazyLock::new(|| {
         (&*PLUS_PLUS, TokenType::PlusPlus),
         (&*ASTERISK, TokenType::Asterisk),
         (&*FORWARD_SLASH, TokenType::ForwardSlash),
-        (&*PERCENT, TokenType::Percent)
+        (&*PERCENT, TokenType::Percent),
     ]
 });
