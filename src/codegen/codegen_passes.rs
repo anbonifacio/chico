@@ -193,9 +193,23 @@ impl Codegen {
                 }
                 Instruction::AllocateStack(int) => Instruction::AllocateStack(*int),
                 Instruction::Ret => Instruction::Ret,
-                Instruction::Binary(binary_operator, operand, operand1) => todo!(),
-                Instruction::Idiv(operand) => todo!(),
-                Instruction::Cdq => todo!(),
+                Instruction::Binary(operator, operand_1, operand_2) => {
+                    let operator = match operator {
+                        BinaryOperator::Add => BinaryOperator::Add,
+                        BinaryOperator::Sub => BinaryOperator::Sub,
+                        BinaryOperator::Mult => BinaryOperator::Mult,
+                    };
+                    let operand_1 = self.match_operand(operand_1)?;
+                    let operand_2 = self.match_operand(operand_2)?;
+                    let stack = self.calculate_stack_location(operand_1)?;
+                    let stack2 = self.calculate_stack_location(operand_2)?;
+                    Instruction::Binary(operator, stack, stack2)
+                }
+                Instruction::Idiv(operand) => {
+                    let op = self.match_operand(operand)?;
+                    Instruction::Idiv(op)
+                }
+                Instruction::Cdq => Instruction::Cdq,
             };
             new_instructions.push(new_instruction);
         }
