@@ -101,6 +101,7 @@ impl Display for Identifier {
 pub enum Instruction {
     Return(Val),
     Unary(UnaryOperator, Val, Val),
+    Binary(BinaryOperator, Val, Val, Val),
 }
 
 impl Display for Instruction {
@@ -111,6 +112,11 @@ impl Display for Instruction {
                 f,
                 "Unary:\n      operator={}\n      src={}\n      dst={}\n",
                 unary_operator, src, dst
+            ),
+            Instruction::Binary(binary_operator, src1, src2, dst) => write!(
+                f,
+                "Binary:\n      operator={}\n      src1={}\n      src2={}\n      dst={}\n",
+                binary_operator, src1, src2, dst
             ),
         }
     }
@@ -126,6 +132,26 @@ impl Display for UnaryOperator {
         match self {
             UnaryOperator::Complement => write!(f, "'~'"),
             UnaryOperator::Negate => write!(f, "'-'"),
+        }
+    }
+}
+
+pub enum BinaryOperator {
+    Add,
+    Subtract,
+    Multiply,
+    Divide,
+    Reminder,
+}
+
+impl Display for BinaryOperator {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            BinaryOperator::Add => write!(f, "'+'"),
+            BinaryOperator::Subtract => write!(f, "'-'"),
+            BinaryOperator::Multiply => write!(f, "'*'"),
+            BinaryOperator::Divide => write!(f, "'/'"),
+            BinaryOperator::Reminder => write!(f, "'%'"),
         }
     }
 }
