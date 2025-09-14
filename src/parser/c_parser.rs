@@ -225,11 +225,11 @@ impl<'expr> CParser<'expr> {
     ) -> std::io::Result<BinaryOperator> {
         match tokens_iter.next() {
             Some(token) => match token.token_type {
-                TokenType::Plus => Ok(BinaryOperator::Add(45)),
-                TokenType::Hyphen => Ok(BinaryOperator::Subtract(45)),
-                TokenType::Asterisk => Ok(BinaryOperator::Multiply(50)),
-                TokenType::ForwardSlash => Ok(BinaryOperator::Divide(50)),
-                TokenType::Percent => Ok(BinaryOperator::Reminder(50)),
+                TokenType::Plus => Ok(BinaryOperator::Add),
+                TokenType::Hyphen => Ok(BinaryOperator::Subtract),
+                TokenType::Asterisk => Ok(BinaryOperator::Multiply),
+                TokenType::ForwardSlash => Ok(BinaryOperator::Divide),
+                TokenType::Percent => Ok(BinaryOperator::Reminder),
                 _ => Err(std::io::Error::new(
                     std::io::ErrorKind::InvalidInput,
                     format!("Expected binary operator, found {:?}", token.token_type),
