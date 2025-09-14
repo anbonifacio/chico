@@ -93,6 +93,49 @@ impl Codegen {
                     Operand::Pseudo(Identifier::Name(dst.var()?)),
                 ));
             }
+            tacky_ast::Instruction::Binary(tacky_ast::BinaryOperator::Divide, src1, src2, dst) => {
+                let src1 = if let Ok(src) = src1.var() {
+                    Operand::Pseudo(Identifier::Name(src))
+                } else {
+                    Operand::Imm(src1.constant()?)
+                };
+                asm_instructions.push(Instruction::Mov(src1, Operand::Reg(RegisterType::AX)));
+                asm_instructions.push(Instruction::Cdq);
+                let src2 = if let Ok(src) = src2.var() {
+                    Operand::Pseudo(Identifier::Name(src))
+                } else {
+                    Operand::Imm(src2.constant()?)
+                };
+                asm_instructions.push(Instruction::Idiv(src2));
+                asm_instructions.push(Instruction::Mov(
+                    Operand::Reg(RegisterType::AX),
+                    Operand::Pseudo(Identifier::Name(dst.var()?)),
+                ));
+            }
+            tacky_ast::Instruction::Binary(
+                tacky_ast::BinaryOperator::Reminder,
+                src1,
+                src2,
+                dst,
+            ) => {
+                let src1 = if let Ok(src) = src1.var() {
+                    Operand::Pseudo(Identifier::Name(src))
+                } else {
+                    Operand::Imm(src1.constant()?)
+                };
+                asm_instructions.push(Instruction::Mov(src1, Operand::Reg(RegisterType::AX)));
+                asm_instructions.push(Instruction::Cdq);
+                let src2 = if let Ok(src) = src2.var() {
+                    Operand::Pseudo(Identifier::Name(src))
+                } else {
+                    Operand::Imm(src2.constant()?)
+                };
+                asm_instructions.push(Instruction::Idiv(src2));
+                asm_instructions.push(Instruction::Mov(
+                    Operand::Reg(RegisterType::DX),
+                    Operand::Pseudo(Identifier::Name(dst.var()?)),
+                ));
+            }
             tacky_ast::Instruction::Binary(operator, src1, src2, dst) => {
                 let src1 = if let Ok(src) = src1.var() {
                     Operand::Pseudo(Identifier::Name(src))
