@@ -75,7 +75,7 @@ impl<'expr> CParser<'expr> {
         tokens_iter: &mut Peekable<Iter<'expr, Token>>,
     ) -> std::io::Result<Statement> {
         self.expect(TokenType::ReturnKeyword, tokens_iter)?;
-        let expression = self.parse_expression(tokens_iter)?;
+        let expression = self.parse_expression(tokens_iter, 0)?;
         self.expect(TokenType::Semicolon, tokens_iter)?;
         Ok(Statement::Return(expression))
     }
@@ -107,7 +107,7 @@ impl<'expr> CParser<'expr> {
                 }
                 TokenType::OpenParenthesis => {
                     self.expect(TokenType::OpenParenthesis, tokens_iter)?;
-                    let expr_ref = self.parse_expression(tokens_iter)?;
+                    let expr_ref = self.parse_expression(tokens_iter, 0)?;
                     self.expect(TokenType::CloseParenthesis, tokens_iter)?;
                     log::debug!(
                         "Parsed parenthesized expression: ({})",
@@ -131,30 +131,31 @@ impl<'expr> CParser<'expr> {
         }
     }
 
-    // FIXME: add op precedence
     fn parse_expression(
         &mut self,
         tokens_iter: &mut Peekable<Iter<'expr, Token>>,
+        min_prec: u8,
     ) -> std::io::Result<ExprRef> {
         let mut left = self.parse_factor(tokens_iter)?;
         log::debug!("Parsed left factor: {}", self.expr_pool.get_expr(left));
         if let Some(mut next_token) = tokens_iter.peek() {
-            while let Token {
-                token_type: TokenType::Plus | TokenType::Hyphen,
-                ..
-            } = next_token
-            {
-                let operator = self.parse_binop(tokens_iter)?;
-                log::debug!("Parsed binary operator: {:?}", operator);
-                let right = self.parse_factor(tokens_iter)?;
-                log::debug!("Parsed right factor: {}", self.expr_pool.get_expr(right));
-                left = self.expr_pool.add_expr(Expr::Binary(operator, left, right));
-                next_token = if let Some(next_token) = tokens_iter.peek() {
-                    log::debug!("Next token: {:?}", next_token);
-                    next_token
+            loop {
+                let next_prec = next_token.token_type.precedence();
+                if next_token.token_type.is_binop() && next_prec >= min_prec {
+                    let operator = self.parse_binop(tokens_iter)?;
+                    log::debug!("Parsed binary operator: {:?}", operator);
+                    let right = self.parse_expression(tokens_iter, next_prec + 1)?;
+                    log::debug!("Parsed right factor: {}", self.expr_pool.get_expr(right));
+                    left = self.expr_pool.add_expr(Expr::Binary(operator, left, right));
+                    next_token = if let Some(next_token) = tokens_iter.peek() {
+                        log::debug!("Next token: {:?}", next_token);
+                        next_token
+                    } else {
+                        break;
+                    }
                 } else {
                     break;
-                };
+                }
             }
             log::debug!("Return expression: {:?}", self.expr_pool.get_expr(left));
             Ok(left)
