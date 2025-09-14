@@ -48,8 +48,14 @@ impl<'expr> TackyGenerator<'expr> {
                 instructions.append(Instruction::Unary(tacky_op, src, dst.clone()));
                 dst
             }
-            c_ast::Expr::Binary(binary_operator, left, right) => {
-                todo!()
+            c_ast::Expr::Binary(operator, left, right) => {
+                let v1 = self.emit_tacky(left, instructions);
+                let v2 = self.emit_tacky(right, instructions);
+                let dst_name = self.make_temporary(left); // Check correctness
+                let dst = Val::Var(Identifier::Name(dst_name.clone()));
+                let tacky_op = self.convert_binop(operator);
+                instructions.append(Instruction::Binary(tacky_op, v1, v2, dst.clone()));
+                dst
             }
             c_ast::Expr::Constant(c) => Val::Constant(*c),
         }
@@ -63,6 +69,16 @@ impl<'expr> TackyGenerator<'expr> {
         match operator {
             c_ast::UnaryOperator::Negate => tacky_ast::UnaryOperator::Negate,
             c_ast::UnaryOperator::Complement => tacky_ast::UnaryOperator::Complement,
+        }
+    }
+
+    fn convert_binop(&self, operator: &c_ast::BinaryOperator) -> BinaryOperator {
+        match operator {
+            c_ast::BinaryOperator::Add => BinaryOperator::Add,
+            c_ast::BinaryOperator::Subtract => BinaryOperator::Subtract,
+            c_ast::BinaryOperator::Multiply => BinaryOperator::Multiply,
+            c_ast::BinaryOperator::Divide => BinaryOperator::Divide,
+            c_ast::BinaryOperator::Reminder => BinaryOperator::Reminder,
         }
     }
 }

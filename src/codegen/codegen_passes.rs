@@ -93,6 +93,7 @@ impl Codegen {
                     Operand::Pseudo(Identifier::Name(dst.var()?)),
                 ));
             }
+            tacky_ast::Instruction::Binary(binary_operator, val, val1, val2) => todo!(),
         }
         Ok(())
     }
