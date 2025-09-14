@@ -72,6 +72,9 @@ impl CodeEmitter {
                                 Instruction::Ret => {
                                     self.write_epilogue()?;
                                 }
+                                Instruction::Binary(binary_operator, src2, dst) => todo!(),
+                                Instruction::Idiv(operand) => todo!(),
+                                Instruction::Cdq => todo!(),
                             }
                         }
                     }
@@ -109,7 +112,9 @@ fn match_operand(src: &Operand) -> String {
         }
         Operand::Reg(reg) => match reg {
             RegisterType::AX => "%eax".to_string(),
+            RegisterType::DX => todo!(),
             RegisterType::R10 => "%r10d".to_string(),
+            RegisterType::R11 => todo!(),
         },
         Operand::Pseudo(_) => unimplemented!(),
         Operand::Stack(int) => {

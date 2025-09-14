@@ -93,7 +93,33 @@ impl Codegen {
                     Operand::Pseudo(Identifier::Name(dst.var()?)),
                 ));
             }
-            tacky_ast::Instruction::Binary(binary_operator, val, val1, val2) => todo!(),
+            tacky_ast::Instruction::Binary(operator, src1, src2, dst) => {
+                let src1 = if let Ok(src) = src1.var() {
+                    Operand::Pseudo(Identifier::Name(src))
+                } else {
+                    Operand::Imm(src1.constant()?)
+                };
+                asm_instructions.push(Instruction::Mov(
+                    src1,
+                    Operand::Pseudo(Identifier::Name(dst.var()?)),
+                ));
+                let src2 = if let Ok(src) = src2.var() {
+                    Operand::Pseudo(Identifier::Name(src))
+                } else {
+                    Operand::Imm(src2.constant()?)
+                };
+                let op = match operator {
+                    tacky_ast::BinaryOperator::Add => BinaryOperator::Add,
+                    tacky_ast::BinaryOperator::Subtract => BinaryOperator::Sub,
+                    tacky_ast::BinaryOperator::Multiply => BinaryOperator::Mult,
+                    _ => unimplemented!(),
+                };
+                asm_instructions.push(Instruction::Binary(
+                    op,
+                    src2,
+                    Operand::Pseudo(Identifier::Name(dst.var()?)),
+                ))
+            }
         }
         Ok(())
     }
@@ -124,6 +150,9 @@ impl Codegen {
                 }
                 Instruction::AllocateStack(int) => Instruction::AllocateStack(*int),
                 Instruction::Ret => Instruction::Ret,
+                Instruction::Binary(binary_operator, operand, operand1) => todo!(),
+                Instruction::Idiv(operand) => todo!(),
+                Instruction::Cdq => todo!(),
             };
             new_instructions.push(new_instruction);
         }
