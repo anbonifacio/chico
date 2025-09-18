@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::hint::unreachable_unchecked;
 
 use crate::codegen::asm_ast::*;
 use crate::tacky_ir::tacky_ast;
@@ -151,11 +152,18 @@ impl Codegen {
                 } else {
                     Operand::Imm(src2.constant()?)
                 };
+                asm_instructions.push(Instruction::Mov(
+                    src2.clone(),
+                    Operand::Pseudo(Identifier::Name("tmp.BINOP".to_string())),
+                ));
                 let op = match operator {
                     tacky_ast::BinaryOperator::Add => BinaryOperator::Add,
                     tacky_ast::BinaryOperator::Subtract => BinaryOperator::Sub,
                     tacky_ast::BinaryOperator::Multiply => BinaryOperator::Mult,
-                    _ => unimplemented!(),
+                    _ => unsafe {
+                        // Safety: Divide and Reminder are already matched on their own
+                        unreachable_unchecked()
+                    },
                 };
                 asm_instructions.push(Instruction::Binary(
                     op,
@@ -187,23 +195,20 @@ impl Codegen {
                         UnaryOperator::Neg => UnaryOperator::Neg,
                         UnaryOperator::Not => UnaryOperator::Not,
                     };
-                    let pseudo_reg = pseudo_reg.get_pseudo_identifier()?;
-                    let stack = self.calculate_stack_location(pseudo_reg)?;
+                    let stack = self.match_operand(pseudo_reg)?;
                     Instruction::Unary(operator, stack)
                 }
                 Instruction::AllocateStack(int) => Instruction::AllocateStack(*int),
                 Instruction::Ret => Instruction::Ret,
-                Instruction::Binary(operator, operand_1, operand_2) => {
+                Instruction::Binary(operator, src, dst) => {
                     let operator = match operator {
                         BinaryOperator::Add => BinaryOperator::Add,
                         BinaryOperator::Sub => BinaryOperator::Sub,
                         BinaryOperator::Mult => BinaryOperator::Mult,
                     };
-                    let operand_1 = self.match_operand(operand_1)?;
-                    let operand_2 = self.match_operand(operand_2)?;
-                    let stack = self.calculate_stack_location(operand_1)?;
-                    let stack2 = self.calculate_stack_location(operand_2)?;
-                    Instruction::Binary(operator, stack, stack2)
+                    let stack1 = self.match_operand(src)?;
+                    let stack2 = self.match_operand(dst)?;
+                    Instruction::Binary(operator, stack1, stack2)
                 }
                 Instruction::Idiv(operand) => {
                     let op = self.match_operand(operand)?;
@@ -233,17 +238,23 @@ impl Codegen {
     }
 
     fn calculate_stack_location(&mut self, operand: Operand) -> std::io::Result<Operand> {
-        if self.pseudo_reg_map.contains_key(&operand) {
-            let stack_location = self
-                .pseudo_reg_map
-                .get(&operand)
-                .ok_or_else(|| std::io::Error::other("Pseudo register not found"))?;
-            Ok(Operand::Stack(stack_location.0))
-        } else {
-            let offset = self.get_current_stack_offset();
-            self.pseudo_reg_map.insert(operand, StackOffset(offset));
-            self.increase_stack_offset();
-            Ok(Operand::Stack(offset))
+        match operand {
+            Operand::Pseudo(_) => {
+                if self.pseudo_reg_map.contains_key(&operand) {
+                    let stack_location = self
+                        .pseudo_reg_map
+                        .get(&operand)
+                        .ok_or_else(|| std::io::Error::other("Pseudo register not found"))?;
+                    Ok(Operand::Stack(stack_location.0))
+                } else {
+                    let offset = self.get_current_stack_offset();
+                    log::debug!("Set {:?} at offset {}", &operand, offset);
+                    self.pseudo_reg_map.insert(operand, StackOffset(offset));
+                    self.increase_stack_offset();
+                    Ok(Operand::Stack(offset))
+                }
+            }
+            _ => unimplemented!("Operand {:?} is not a pseudo register", operand),
         }
     }
 
