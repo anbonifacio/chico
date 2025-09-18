@@ -280,6 +280,43 @@ impl Codegen {
                         _ => new_instructions.push(Instruction::Mov(src.clone(), dst.clone())),
                     }
                 }
+                // fixup Add, Sub, Mult instructions
+                Instruction::Binary(binop, src, dst) => match binop {
+                    BinaryOperator::Add => {
+                        let r10 = Operand::Reg(RegisterType::R10);
+                        new_instructions.push(Instruction::Mov(src.clone(), r10.clone()));
+                        new_instructions.push(Instruction::Binary(
+                            BinaryOperator::Add,
+                            r10.clone(),
+                            dst.clone(),
+                        ));
+                    }
+                    BinaryOperator::Sub => {
+                        let r10 = Operand::Reg(RegisterType::R10);
+                        new_instructions.push(Instruction::Mov(src.clone(), r10.clone()));
+                        new_instructions.push(Instruction::Binary(
+                            BinaryOperator::Sub,
+                            r10.clone(),
+                            dst.clone(),
+                        ));
+                    }
+                    BinaryOperator::Mult => {
+                        let r11 = Operand::Reg(RegisterType::R11);
+                        new_instructions.push(Instruction::Mov(dst.clone(), r11.clone()));
+                        new_instructions.push(Instruction::Binary(
+                            BinaryOperator::Mult,
+                            src.clone(),
+                            r11.clone(),
+                        ));
+                        new_instructions.push(Instruction::Mov(r11.clone(), dst.clone()));
+                    }
+                },
+                // fixup Idiv instructions
+                Instruction::Idiv(op) => {
+                    let r10 = Operand::Reg(RegisterType::R10);
+                    new_instructions.push(Instruction::Mov(op.clone(), r10.clone()));
+                    new_instructions.push(Instruction::Idiv(r10.clone()));
+                }
                 _ => new_instructions.push(instruction.clone()),
             };
         }

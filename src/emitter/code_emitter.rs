@@ -72,7 +72,7 @@ impl CodeEmitter {
                                 Instruction::Ret => {
                                     self.write_epilogue()?;
                                 }
-                                Instruction::Binary(binary_operator, src2, dst) => todo!(),
+                                Instruction::Binary(binop, src, dst) => todo!(),
                                 Instruction::Idiv(operand) => todo!(),
                                 Instruction::Cdq => todo!(),
                             }
