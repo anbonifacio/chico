@@ -78,7 +78,7 @@ impl<'expr> TackyGenerator<'expr> {
             c_ast::BinaryOperator::Subtract => BinaryOperator::Subtract,
             c_ast::BinaryOperator::Multiply => BinaryOperator::Multiply,
             c_ast::BinaryOperator::Divide => BinaryOperator::Divide,
-            c_ast::BinaryOperator::Reminder => BinaryOperator::Reminder,
+            c_ast::BinaryOperator::Remainder => BinaryOperator::Remainder,
         }
     }
 }

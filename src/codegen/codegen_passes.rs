@@ -114,7 +114,7 @@ impl Codegen {
                 ));
             }
             tacky_ast::Instruction::Binary(
-                tacky_ast::BinaryOperator::Reminder,
+                tacky_ast::BinaryOperator::Remainder,
                 src1,
                 src2,
                 dst,
@@ -161,7 +161,7 @@ impl Codegen {
                     tacky_ast::BinaryOperator::Subtract => BinaryOperator::Sub,
                     tacky_ast::BinaryOperator::Multiply => BinaryOperator::Mult,
                     _ => unsafe {
-                        // Safety: Divide and Reminder are already matched on their own
+                        // Safety: Divide and Remainder are already matched on their own
                         unreachable_unchecked()
                     },
                 };

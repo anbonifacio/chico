@@ -156,7 +156,7 @@ pub enum BinaryOperator {
     Subtract,
     Multiply,
     Divide,
-    Reminder,
+    Remainder,
 }
 
 impl Display for BinaryOperator {
@@ -166,7 +166,7 @@ impl Display for BinaryOperator {
             BinaryOperator::Subtract => write!(f, "'-'"),
             BinaryOperator::Multiply => write!(f, "'*'"),
             BinaryOperator::Divide => write!(f, "'/'"),
-            BinaryOperator::Reminder => write!(f, "'%'"),
+            BinaryOperator::Remainder => write!(f, "'%'"),
         }
     }
 }

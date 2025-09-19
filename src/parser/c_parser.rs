@@ -229,7 +229,7 @@ impl<'expr> CParser<'expr> {
                 TokenType::Hyphen => Ok(BinaryOperator::Subtract),
                 TokenType::Asterisk => Ok(BinaryOperator::Multiply),
                 TokenType::ForwardSlash => Ok(BinaryOperator::Divide),
-                TokenType::Percent => Ok(BinaryOperator::Reminder),
+                TokenType::Percent => Ok(BinaryOperator::Remainder),
                 _ => Err(std::io::Error::new(
                     std::io::ErrorKind::InvalidInput,
                     format!("Expected binary operator, found {:?}", token.token_type),
