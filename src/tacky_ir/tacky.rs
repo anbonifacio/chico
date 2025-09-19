@@ -51,7 +51,7 @@ impl<'expr> TackyGenerator<'expr> {
             c_ast::Expr::Binary(operator, left, right) => {
                 let v1 = self.emit_tacky(left, instructions);
                 let v2 = self.emit_tacky(right, instructions);
-                let dst_name = self.make_temporary(left); // Check correctness
+                let dst_name = self.make_temporary(left);
                 let dst = Val::Var(Identifier::Name(dst_name.clone()));
                 let tacky_op = self.convert_binop(operator);
                 instructions.append(Instruction::Binary(tacky_op, v1, v2, dst.clone()));
