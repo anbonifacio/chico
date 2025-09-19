@@ -104,6 +104,46 @@ impl CodeEmitter {
                                             .as_bytes(),
                                         )?;
                                     }
+                                    BinaryOperator::BitwiseAnd => self.output.write_all(
+                                        format!(
+                                            "    andl   {}, {}\n",
+                                            match_operand(src),
+                                            match_operand(dst)
+                                        )
+                                        .as_bytes(),
+                                    )?,
+                                    BinaryOperator::BitwiseOr => self.output.write_all(
+                                        format!(
+                                            "    orl    {}, {}\n",
+                                            match_operand(src),
+                                            match_operand(dst)
+                                        )
+                                        .as_bytes(),
+                                    )?,
+                                    BinaryOperator::BitwiseXor => self.output.write_all(
+                                        format!(
+                                            "    xorl   {}, {}\n",
+                                            match_operand(src),
+                                            match_operand(dst)
+                                        )
+                                        .as_bytes(),
+                                    )?,
+                                    BinaryOperator::LeftShift => self.output.write_all(
+                                        format!(
+                                            "    shll   {}, {}\n",
+                                            match_operand(src),
+                                            match_operand(dst)
+                                        )
+                                        .as_bytes(),
+                                    )?,
+                                    BinaryOperator::RightShift => self.output.write_all(
+                                        format!(
+                                            "    shrl   {}, {}\n",
+                                            match_operand(src),
+                                            match_operand(dst)
+                                        )
+                                        .as_bytes(),
+                                    )?,
                                 },
                                 Instruction::Idiv(operand) => self.output.write_all(
                                     format!("    idivl  {}\n", match_operand(operand)).as_bytes(),

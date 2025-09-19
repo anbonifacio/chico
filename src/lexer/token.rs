@@ -28,8 +28,8 @@ pub enum TokenType {
 impl TokenType {
     pub fn precedence(&self) -> u8 {
         match self {
-            TokenType::Plus | TokenType::Hyphen => 45,
             TokenType::Asterisk | TokenType::ForwardSlash | TokenType::Percent => 50,
+            TokenType::Plus | TokenType::Hyphen => 45,
             TokenType::LeftShift | TokenType::RightShift => 40,
             TokenType::BitwiseAnd => 35,
             TokenType::BitwiseXor => 30,
