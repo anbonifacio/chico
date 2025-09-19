@@ -18,6 +18,11 @@ pub enum TokenType {
     Asterisk,
     ForwardSlash,
     Percent,
+    BitwiseAnd,
+    BitwiseOr,
+    BitwiseXor,
+    LeftShift,
+    RightShift,
 }
 
 impl TokenType {
@@ -25,6 +30,10 @@ impl TokenType {
         match self {
             TokenType::Plus | TokenType::Hyphen => 45,
             TokenType::Asterisk | TokenType::ForwardSlash | TokenType::Percent => 50,
+            TokenType::LeftShift | TokenType::RightShift => 40,
+            TokenType::BitwiseAnd => 35,
+            TokenType::BitwiseXor => 30,
+            TokenType::BitwiseOr => 25,
             _ => 0,
         }
     }
