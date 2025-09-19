@@ -46,6 +46,11 @@ impl TokenType {
                 | TokenType::Asterisk
                 | TokenType::ForwardSlash
                 | TokenType::Percent
+                | TokenType::BitwiseAnd
+                | TokenType::BitwiseOr
+                | TokenType::BitwiseXor
+                | TokenType::LeftShift
+                | TokenType::RightShift
         )
     }
 }

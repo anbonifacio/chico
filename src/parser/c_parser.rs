@@ -230,6 +230,11 @@ impl<'expr> CParser<'expr> {
                 TokenType::Asterisk => Ok(BinaryOperator::Multiply),
                 TokenType::ForwardSlash => Ok(BinaryOperator::Divide),
                 TokenType::Percent => Ok(BinaryOperator::Remainder),
+                TokenType::BitwiseAnd => Ok(BinaryOperator::BitwiseAnd),
+                TokenType::BitwiseOr => Ok(BinaryOperator::BitwiseOr),
+                TokenType::BitwiseXor => Ok(BinaryOperator::BitwiseXor),
+                TokenType::LeftShift => Ok(BinaryOperator::LeftShift),
+                TokenType::RightShift => Ok(BinaryOperator::RightShift),
                 _ => Err(std::io::Error::new(
                     std::io::ErrorKind::InvalidInput,
                     format!("Expected binary operator, found {:?}", token.token_type),
