@@ -13,6 +13,32 @@ pub enum TokenType {
     Tilde,
     Hyphen,
     TwoHyphens,
+    Plus,
+    PlusPlus,
+    Asterisk,
+    ForwardSlash,
+    Percent,
+}
+
+impl TokenType {
+    pub fn precedence(&self) -> u8 {
+        match self {
+            TokenType::Plus | TokenType::Hyphen => 45,
+            TokenType::Asterisk | TokenType::ForwardSlash | TokenType::Percent => 50,
+            _ => 0,
+        }
+    }
+
+    pub fn is_binop(&self) -> bool {
+        matches!(
+            self,
+            TokenType::Plus
+                | TokenType::Hyphen
+                | TokenType::Asterisk
+                | TokenType::ForwardSlash
+                | TokenType::Percent
+        )
+    }
 }
 
 #[derive(Debug, PartialEq)]

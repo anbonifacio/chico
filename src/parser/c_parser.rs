@@ -75,12 +75,12 @@ impl<'expr> CParser<'expr> {
         tokens_iter: &mut Peekable<Iter<'expr, Token>>,
     ) -> std::io::Result<Statement> {
         self.expect(TokenType::ReturnKeyword, tokens_iter)?;
-        let expression = self.parse_expression(tokens_iter)?;
+        let expression = self.parse_expression(tokens_iter, 0)?;
         self.expect(TokenType::Semicolon, tokens_iter)?;
         Ok(Statement::Return(expression))
     }
 
-    fn parse_expression(
+    fn parse_factor(
         &mut self,
         tokens_iter: &mut Peekable<Iter<'expr, Token>>,
     ) -> std::io::Result<ExprRef> {
@@ -91,31 +91,79 @@ impl<'expr> CParser<'expr> {
                     let expr_ref = self
                         .expr_pool
                         .add_expr(Expr::Constant(self.parse_as_i32(token)?));
+                    log::debug!("Parsed constant: {}", self.expr_pool.get_expr(expr_ref));
                     Ok(expr_ref)
                 }
                 TokenType::Tilde | TokenType::Hyphen => {
                     let token = self.extract_token(tokens_iter)?;
                     let operator = self.parse_unop(token)?;
-                    let inner_expr = self.parse_expression(tokens_iter)?;
+                    let inner_expr = self.parse_factor(tokens_iter)?;
                     let expr_ref = self.expr_pool.add_expr(Expr::Unary(operator, inner_expr));
+                    log::debug!(
+                        "Parsed unary expression: {}",
+                        self.expr_pool.get_expr(expr_ref)
+                    );
                     Ok(expr_ref)
                 }
                 TokenType::OpenParenthesis => {
                     self.expect(TokenType::OpenParenthesis, tokens_iter)?;
-                    let expr_ref = self.parse_expression(tokens_iter)?;
+                    let expr_ref = self.parse_expression(tokens_iter, 0)?;
                     self.expect(TokenType::CloseParenthesis, tokens_iter)?;
+                    log::debug!(
+                        "Parsed parenthesized expression: ({})",
+                        self.expr_pool.get_expr(expr_ref)
+                    );
                     Ok(expr_ref)
                 }
                 _ => Err(std::io::Error::new(
                     std::io::ErrorKind::InvalidData,
-                    format!("Malformed expression, found: {:?}", next_token.token_type),
+                    format!("Malformed factor, found: {:?}", next_token.token_type),
                 )),
             }
         } else {
             Err(std::io::Error::new(
                 std::io::ErrorKind::InvalidData,
                 format!(
-                    "Malformed expression, found: {:?}",
+                    "Malformed factor, found: {:?}",
+                    tokens_iter.peekable().peek()
+                ),
+            ))
+        }
+    }
+
+    fn parse_expression(
+        &mut self,
+        tokens_iter: &mut Peekable<Iter<'expr, Token>>,
+        min_prec: u8,
+    ) -> std::io::Result<ExprRef> {
+        let mut left = self.parse_factor(tokens_iter)?;
+        log::debug!("Parsed left factor: {}", self.expr_pool.get_expr(left));
+        if let Some(mut next_token) = tokens_iter.peek() {
+            loop {
+                let next_prec = next_token.token_type.precedence();
+                if next_token.token_type.is_binop() && next_prec >= min_prec {
+                    let operator = self.parse_binop(tokens_iter)?;
+                    log::debug!("Parsed binary operator: {:?}", operator);
+                    let right = self.parse_expression(tokens_iter, next_prec + 1)?;
+                    log::debug!("Parsed right factor: {}", self.expr_pool.get_expr(right));
+                    left = self.expr_pool.add_expr(Expr::Binary(operator, left, right));
+                    next_token = if let Some(next_token) = tokens_iter.peek() {
+                        log::debug!("Next token: {:?}", next_token);
+                        next_token
+                    } else {
+                        break;
+                    }
+                } else {
+                    break;
+                }
+            }
+            log::debug!("Return expression: {:?}", self.expr_pool.get_expr(left));
+            Ok(left)
+        } else {
+            Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                format!(
+                    "Malformed factor, found: {:?}",
                     tokens_iter.peekable().peek()
                 ),
             ))
@@ -169,5 +217,28 @@ impl<'expr> CParser<'expr> {
         tokens_iter.next().ok_or_else(|| {
             std::io::Error::new(std::io::ErrorKind::InvalidData, "Unexpected end of input")
         })
+    }
+
+    fn parse_binop(
+        &self,
+        tokens_iter: &mut Peekable<Iter<'expr, Token>>,
+    ) -> std::io::Result<BinaryOperator> {
+        match tokens_iter.next() {
+            Some(token) => match token.token_type {
+                TokenType::Plus => Ok(BinaryOperator::Add),
+                TokenType::Hyphen => Ok(BinaryOperator::Subtract),
+                TokenType::Asterisk => Ok(BinaryOperator::Multiply),
+                TokenType::ForwardSlash => Ok(BinaryOperator::Divide),
+                TokenType::Percent => Ok(BinaryOperator::Remainder),
+                _ => Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidInput,
+                    format!("Expected binary operator, found {:?}", token.token_type),
+                )),
+            },
+            None => Err(std::io::Error::new(
+                std::io::ErrorKind::UnexpectedEof,
+                "Unexpected end of input",
+            )),
+        }
     }
 }

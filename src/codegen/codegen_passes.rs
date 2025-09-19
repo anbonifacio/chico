@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::hint::unreachable_unchecked;
 
 use crate::codegen::asm_ast::*;
 use crate::tacky_ir::tacky_ast;
@@ -93,6 +94,83 @@ impl Codegen {
                     Operand::Pseudo(Identifier::Name(dst.var()?)),
                 ));
             }
+            tacky_ast::Instruction::Binary(tacky_ast::BinaryOperator::Divide, src1, src2, dst) => {
+                let src1 = if let Ok(src) = src1.var() {
+                    Operand::Pseudo(Identifier::Name(src))
+                } else {
+                    Operand::Imm(src1.constant()?)
+                };
+                asm_instructions.push(Instruction::Mov(src1, Operand::Reg(RegisterType::AX)));
+                asm_instructions.push(Instruction::Cdq);
+                let src2 = if let Ok(src) = src2.var() {
+                    Operand::Pseudo(Identifier::Name(src))
+                } else {
+                    Operand::Imm(src2.constant()?)
+                };
+                asm_instructions.push(Instruction::Idiv(src2));
+                asm_instructions.push(Instruction::Mov(
+                    Operand::Reg(RegisterType::AX),
+                    Operand::Pseudo(Identifier::Name(dst.var()?)),
+                ));
+            }
+            tacky_ast::Instruction::Binary(
+                tacky_ast::BinaryOperator::Remainder,
+                src1,
+                src2,
+                dst,
+            ) => {
+                let src1 = if let Ok(src) = src1.var() {
+                    Operand::Pseudo(Identifier::Name(src))
+                } else {
+                    Operand::Imm(src1.constant()?)
+                };
+                asm_instructions.push(Instruction::Mov(src1, Operand::Reg(RegisterType::AX)));
+                asm_instructions.push(Instruction::Cdq);
+                let src2 = if let Ok(src) = src2.var() {
+                    Operand::Pseudo(Identifier::Name(src))
+                } else {
+                    Operand::Imm(src2.constant()?)
+                };
+                asm_instructions.push(Instruction::Idiv(src2));
+                asm_instructions.push(Instruction::Mov(
+                    Operand::Reg(RegisterType::DX),
+                    Operand::Pseudo(Identifier::Name(dst.var()?)),
+                ));
+            }
+            tacky_ast::Instruction::Binary(operator, src1, src2, dst) => {
+                let src1 = if let Ok(src) = src1.var() {
+                    Operand::Pseudo(Identifier::Name(src))
+                } else {
+                    Operand::Imm(src1.constant()?)
+                };
+                asm_instructions.push(Instruction::Mov(
+                    src1,
+                    Operand::Pseudo(Identifier::Name(dst.var()?)),
+                ));
+                let src2 = if let Ok(src) = src2.var() {
+                    Operand::Pseudo(Identifier::Name(src))
+                } else {
+                    Operand::Imm(src2.constant()?)
+                };
+                asm_instructions.push(Instruction::Mov(
+                    src2.clone(),
+                    Operand::Pseudo(Identifier::Name("tmp.BINOP".to_string())),
+                ));
+                let op = match operator {
+                    tacky_ast::BinaryOperator::Add => BinaryOperator::Add,
+                    tacky_ast::BinaryOperator::Subtract => BinaryOperator::Sub,
+                    tacky_ast::BinaryOperator::Multiply => BinaryOperator::Mult,
+                    _ => unsafe {
+                        // Safety: Divide and Remainder are already matched on their own
+                        unreachable_unchecked()
+                    },
+                };
+                asm_instructions.push(Instruction::Binary(
+                    op,
+                    src2,
+                    Operand::Pseudo(Identifier::Name(dst.var()?)),
+                ))
+            }
         }
         Ok(())
     }
@@ -117,12 +195,26 @@ impl Codegen {
                         UnaryOperator::Neg => UnaryOperator::Neg,
                         UnaryOperator::Not => UnaryOperator::Not,
                     };
-                    let pseudo_reg = pseudo_reg.get_pseudo_identifier()?;
-                    let stack = self.calculate_stack_location(pseudo_reg)?;
+                    let stack = self.match_operand(pseudo_reg)?;
                     Instruction::Unary(operator, stack)
                 }
                 Instruction::AllocateStack(int) => Instruction::AllocateStack(*int),
                 Instruction::Ret => Instruction::Ret,
+                Instruction::Binary(operator, src, dst) => {
+                    let operator = match operator {
+                        BinaryOperator::Add => BinaryOperator::Add,
+                        BinaryOperator::Sub => BinaryOperator::Sub,
+                        BinaryOperator::Mult => BinaryOperator::Mult,
+                    };
+                    let stack1 = self.match_operand(src)?;
+                    let stack2 = self.match_operand(dst)?;
+                    Instruction::Binary(operator, stack1, stack2)
+                }
+                Instruction::Idiv(operand) => {
+                    let op = self.match_operand(operand)?;
+                    Instruction::Idiv(op)
+                }
+                Instruction::Cdq => Instruction::Cdq,
             };
             new_instructions.push(new_instruction);
         }
@@ -146,17 +238,23 @@ impl Codegen {
     }
 
     fn calculate_stack_location(&mut self, operand: Operand) -> std::io::Result<Operand> {
-        if self.pseudo_reg_map.contains_key(&operand) {
-            let stack_location = self
-                .pseudo_reg_map
-                .get(&operand)
-                .ok_or_else(|| std::io::Error::other("Pseudo register not found"))?;
-            Ok(Operand::Stack(stack_location.0))
-        } else {
-            let offset = self.get_current_stack_offset();
-            self.pseudo_reg_map.insert(operand, StackOffset(offset));
-            self.increase_stack_offset();
-            Ok(Operand::Stack(offset))
+        match operand {
+            Operand::Pseudo(_) => {
+                if self.pseudo_reg_map.contains_key(&operand) {
+                    let stack_location = self
+                        .pseudo_reg_map
+                        .get(&operand)
+                        .ok_or_else(|| std::io::Error::other("Pseudo register not found"))?;
+                    Ok(Operand::Stack(stack_location.0))
+                } else {
+                    let offset = self.get_current_stack_offset();
+                    log::debug!("Set {:?} at offset {}", &operand, offset);
+                    self.pseudo_reg_map.insert(operand, StackOffset(offset));
+                    self.increase_stack_offset();
+                    Ok(Operand::Stack(offset))
+                }
+            }
+            _ => unimplemented!("Operand {:?} is not a pseudo register", operand),
         }
     }
 
@@ -192,6 +290,43 @@ impl Codegen {
                         }
                         _ => new_instructions.push(Instruction::Mov(src.clone(), dst.clone())),
                     }
+                }
+                // fixup Add, Sub, Mult instructions
+                Instruction::Binary(binop, src, dst) => match binop {
+                    BinaryOperator::Add => {
+                        let r10 = Operand::Reg(RegisterType::R10);
+                        new_instructions.push(Instruction::Mov(src.clone(), r10.clone()));
+                        new_instructions.push(Instruction::Binary(
+                            BinaryOperator::Add,
+                            r10.clone(),
+                            dst.clone(),
+                        ));
+                    }
+                    BinaryOperator::Sub => {
+                        let r10 = Operand::Reg(RegisterType::R10);
+                        new_instructions.push(Instruction::Mov(src.clone(), r10.clone()));
+                        new_instructions.push(Instruction::Binary(
+                            BinaryOperator::Sub,
+                            r10.clone(),
+                            dst.clone(),
+                        ));
+                    }
+                    BinaryOperator::Mult => {
+                        let r11 = Operand::Reg(RegisterType::R11);
+                        new_instructions.push(Instruction::Mov(dst.clone(), r11.clone()));
+                        new_instructions.push(Instruction::Binary(
+                            BinaryOperator::Mult,
+                            src.clone(),
+                            r11.clone(),
+                        ));
+                        new_instructions.push(Instruction::Mov(r11.clone(), dst.clone()));
+                    }
+                },
+                // fixup Idiv instructions
+                Instruction::Idiv(op) => {
+                    let r10 = Operand::Reg(RegisterType::R10);
+                    new_instructions.push(Instruction::Mov(op.clone(), r10.clone()));
+                    new_instructions.push(Instruction::Idiv(r10.clone()));
                 }
                 _ => new_instructions.push(instruction.clone()),
             };

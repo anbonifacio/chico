@@ -53,6 +53,9 @@ impl Identifier {
 pub enum Instruction {
     Mov(Operand, Operand),
     Unary(UnaryOperator, Operand),
+    Binary(BinaryOperator, Operand, Operand),
+    Idiv(Operand),
+    Cdq,
     AllocateStack(i32),
     Ret,
 }
@@ -61,6 +64,13 @@ pub enum Instruction {
 pub enum UnaryOperator {
     Neg,
     Not,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum BinaryOperator {
+    Add,
+    Sub,
+    Mult,
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
@@ -77,7 +87,9 @@ impl Operand {
             Operand::Imm(value) => Ok(Operand::Imm(*value)),
             Operand::Reg(reg) => match reg {
                 RegisterType::AX => Ok(Operand::Reg(RegisterType::AX)),
+                RegisterType::DX => Ok(Operand::Reg(RegisterType::DX)),
                 RegisterType::R10 => Ok(Operand::Reg(RegisterType::R10)),
+                RegisterType::R11 => Ok(Operand::Reg(RegisterType::R11)),
             },
             Operand::Pseudo(identifier) => Ok(Operand::Pseudo(Identifier::Name(identifier.name()))),
             Operand::Stack(offset) => Ok(Operand::Stack(*offset)),
@@ -108,14 +120,18 @@ impl Operand {
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum RegisterType {
     AX,
+    DX,
     R10,
+    R11,
 }
 
 impl Display for RegisterType {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             RegisterType::AX => write!(f, "eax"),
+            RegisterType::DX => write!(f, "edx"),
             RegisterType::R10 => write!(f, "r10"),
+            RegisterType::R11 => write!(f, "r11"),
         }
     }
 }

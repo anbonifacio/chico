@@ -1,5 +1,6 @@
 use std::{
     fs::File,
+    hint::unreachable_unchecked,
     io::{BufWriter, Write},
     path::PathBuf,
 };
@@ -72,6 +73,44 @@ impl CodeEmitter {
                                 Instruction::Ret => {
                                     self.write_epilogue()?;
                                 }
+                                Instruction::Binary(binop, src, dst) => match binop {
+                                    BinaryOperator::Add => {
+                                        self.output.write_all(
+                                            format!(
+                                                "    addl   {}, {}\n",
+                                                match_operand(src),
+                                                match_operand(dst)
+                                            )
+                                            .as_bytes(),
+                                        )?;
+                                    }
+                                    BinaryOperator::Sub => {
+                                        self.output.write_all(
+                                            format!(
+                                                "    subl   {}, {}\n",
+                                                match_operand(src),
+                                                match_operand(dst)
+                                            )
+                                            .as_bytes(),
+                                        )?;
+                                    }
+                                    BinaryOperator::Mult => {
+                                        self.output.write_all(
+                                            format!(
+                                                "    imull  {}, {}\n",
+                                                match_operand(src),
+                                                match_operand(dst)
+                                            )
+                                            .as_bytes(),
+                                        )?;
+                                    }
+                                },
+                                Instruction::Idiv(operand) => self.output.write_all(
+                                    format!("    idivl  {}\n", match_operand(operand)).as_bytes(),
+                                )?,
+                                Instruction::Cdq => {
+                                    self.output.write_all(b"    cdq\n")?;
+                                }
                             }
                         }
                     }
@@ -109,9 +148,14 @@ fn match_operand(src: &Operand) -> String {
         }
         Operand::Reg(reg) => match reg {
             RegisterType::AX => "%eax".to_string(),
+            RegisterType::DX => "%edx".to_string(),
             RegisterType::R10 => "%r10d".to_string(),
+            RegisterType::R11 => "%r11d".to_string(),
         },
-        Operand::Pseudo(_) => unimplemented!(),
+        Operand::Pseudo(_) => unsafe {
+            // Safety: Pseudo Registers are already fixed up here.
+            unreachable_unchecked()
+        },
         Operand::Stack(int) => {
             format!("{}(%rbp)", int)
         }
