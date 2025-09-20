@@ -107,10 +107,10 @@ impl Operand {
         match self {
             Operand::Imm(value) => Ok(Operand::Imm(*value)),
             Operand::Reg(reg) => match reg {
-                RegisterType::AX => Ok(Operand::Reg(RegisterType::AX)),
-                RegisterType::DX => Ok(Operand::Reg(RegisterType::DX)),
-                RegisterType::R10 => Ok(Operand::Reg(RegisterType::R10)),
-                RegisterType::R11 => Ok(Operand::Reg(RegisterType::R11)),
+                RegisterType::AX(size) => Ok(Operand::Reg(RegisterType::AX(*size))),
+                RegisterType::DX(size) => Ok(Operand::Reg(RegisterType::DX(*size))),
+                RegisterType::R10(size) => Ok(Operand::Reg(RegisterType::R10(*size))),
+                RegisterType::R11(size) => Ok(Operand::Reg(RegisterType::R11(*size))),
                 RegisterType::CX => Ok(Operand::Reg(RegisterType::CX)),
                 RegisterType::CL => Ok(Operand::Reg(RegisterType::CL)),
             },
@@ -122,21 +122,31 @@ impl Operand {
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum RegisterType {
-    AX,
-    DX,
-    R10,
-    R11,
+    AX(RegisterSize),
+    DX(RegisterSize),
+    R10(RegisterSize),
+    R11(RegisterSize),
     CX,
     CL,
+}
+
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
+pub enum RegisterSize {
+    One,
+    Four,
 }
 
 impl Display for RegisterType {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            RegisterType::AX => write!(f, "eax"),
-            RegisterType::DX => write!(f, "edx"),
-            RegisterType::R10 => write!(f, "r10d"),
-            RegisterType::R11 => write!(f, "r11d"),
+            RegisterType::AX(RegisterSize::Four) => write!(f, "eax"),
+            RegisterType::AX(RegisterSize::One) => write!(f, "al"),
+            RegisterType::DX(RegisterSize::Four) => write!(f, "edx"),
+            RegisterType::DX(RegisterSize::One) => write!(f, "dl"),
+            RegisterType::R10(RegisterSize::Four) => write!(f, "r10d"),
+            RegisterType::R10(RegisterSize::One) => write!(f, "r10b"),
+            RegisterType::R11(RegisterSize::Four) => write!(f, "r11d"),
+            RegisterType::R11(RegisterSize::One) => write!(f, "r11b"),
             RegisterType::CX => write!(f, "ecx"),
             RegisterType::CL => write!(f, "cl"),
         }

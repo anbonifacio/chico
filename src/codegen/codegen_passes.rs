@@ -66,13 +66,13 @@ impl Codegen {
                     tacky_ast::Val::Constant(int) => {
                         asm_instructions.push(Instruction::Mov(
                             Operand::Imm(*int),
-                            Operand::Reg(RegisterType::AX),
+                            Operand::Reg(RegisterType::AX(RegisterSize::Four)),
                         ));
                     }
                     tacky_ast::Val::Var(val) => {
                         asm_instructions.push(Instruction::Mov(
                             Operand::Pseudo(Identifier::Name(val.name().to_string())),
-                            Operand::Reg(RegisterType::AX),
+                            Operand::Reg(RegisterType::AX(RegisterSize::Four)),
                         ));
                     }
                 }
@@ -141,7 +141,10 @@ impl Codegen {
                 } else {
                     Operand::Imm(src1.constant()?)
                 };
-                asm_instructions.push(Instruction::Mov(src1, Operand::Reg(RegisterType::AX)));
+                asm_instructions.push(Instruction::Mov(
+                    src1,
+                    Operand::Reg(RegisterType::AX(RegisterSize::Four)),
+                ));
                 asm_instructions.push(Instruction::Cdq);
                 let src2 = if let Ok(src) = src2.var() {
                     Operand::Pseudo(Identifier::Name(src))
@@ -150,7 +153,7 @@ impl Codegen {
                 };
                 asm_instructions.push(Instruction::Idiv(src2));
                 asm_instructions.push(Instruction::Mov(
-                    Operand::Reg(RegisterType::AX),
+                    Operand::Reg(RegisterType::AX(RegisterSize::Four)),
                     Operand::Pseudo(Identifier::Name(dst.var()?)),
                 ));
             }
@@ -160,7 +163,10 @@ impl Codegen {
                 } else {
                     Operand::Imm(src1.constant()?)
                 };
-                asm_instructions.push(Instruction::Mov(src1, Operand::Reg(RegisterType::AX)));
+                asm_instructions.push(Instruction::Mov(
+                    src1,
+                    Operand::Reg(RegisterType::AX(RegisterSize::Four)),
+                ));
                 asm_instructions.push(Instruction::Cdq);
                 let src2 = if let Ok(src) = src2.var() {
                     Operand::Pseudo(Identifier::Name(src))
@@ -169,7 +175,7 @@ impl Codegen {
                 };
                 asm_instructions.push(Instruction::Idiv(src2));
                 asm_instructions.push(Instruction::Mov(
-                    Operand::Reg(RegisterType::DX),
+                    Operand::Reg(RegisterType::DX(RegisterSize::Four)),
                     Operand::Pseudo(Identifier::Name(dst.var()?)),
                 ));
             }
@@ -397,7 +403,7 @@ impl Codegen {
                     // check if both src and dst are Stack, if so split in 2 movs using register R10
                     match (src, dst) {
                         (Operand::Stack(_), Operand::Stack(_)) => {
-                            let r10 = Operand::Reg(RegisterType::R10);
+                            let r10 = Operand::Reg(RegisterType::R10(RegisterSize::Four));
                             new_instructions.push(Instruction::Mov(src.clone(), r10.clone()));
                             new_instructions.push(Instruction::Mov(r10.clone(), dst.clone()));
                         }
@@ -407,7 +413,7 @@ impl Codegen {
                 // fixup Add, Sub, Mult, BitwiseAnd, BitwiseOr instructions
                 Instruction::Binary(binop, src, dst) => match binop {
                     BinaryOperator::Add => {
-                        let r10 = Operand::Reg(RegisterType::R10);
+                        let r10 = Operand::Reg(RegisterType::R10(RegisterSize::Four));
                         new_instructions.push(Instruction::Mov(src.clone(), r10.clone()));
                         new_instructions.push(Instruction::Binary(
                             BinaryOperator::Add,
@@ -416,7 +422,7 @@ impl Codegen {
                         ));
                     }
                     BinaryOperator::Sub => {
-                        let r10 = Operand::Reg(RegisterType::R10);
+                        let r10 = Operand::Reg(RegisterType::R10(RegisterSize::Four));
                         new_instructions.push(Instruction::Mov(src.clone(), r10.clone()));
                         new_instructions.push(Instruction::Binary(
                             BinaryOperator::Sub,
@@ -425,7 +431,7 @@ impl Codegen {
                         ));
                     }
                     BinaryOperator::Mult => {
-                        let r11 = Operand::Reg(RegisterType::R11);
+                        let r11 = Operand::Reg(RegisterType::R11(RegisterSize::Four));
                         new_instructions.push(Instruction::Mov(dst.clone(), r11.clone()));
                         new_instructions.push(Instruction::Binary(
                             BinaryOperator::Mult,
@@ -435,7 +441,7 @@ impl Codegen {
                         new_instructions.push(Instruction::Mov(r11.clone(), dst.clone()));
                     }
                     BinaryOperator::BitwiseAnd => {
-                        let r10 = Operand::Reg(RegisterType::R10);
+                        let r10 = Operand::Reg(RegisterType::R10(RegisterSize::Four));
                         new_instructions.push(Instruction::Mov(src.clone(), r10.clone()));
                         new_instructions.push(Instruction::Binary(
                             BinaryOperator::BitwiseAnd,
@@ -444,7 +450,7 @@ impl Codegen {
                         ));
                     }
                     BinaryOperator::BitwiseOr => {
-                        let r10 = Operand::Reg(RegisterType::R10);
+                        let r10 = Operand::Reg(RegisterType::R10(RegisterSize::Four));
                         new_instructions.push(Instruction::Mov(src.clone(), r10.clone()));
                         new_instructions.push(Instruction::Binary(
                             BinaryOperator::BitwiseOr,
@@ -453,7 +459,7 @@ impl Codegen {
                         ));
                     }
                     BinaryOperator::BitwiseXor => {
-                        let r10 = Operand::Reg(RegisterType::R10);
+                        let r10 = Operand::Reg(RegisterType::R10(RegisterSize::Four));
                         new_instructions.push(Instruction::Mov(src.clone(), r10.clone()));
                         new_instructions.push(Instruction::Binary(
                             BinaryOperator::BitwiseXor,
@@ -463,7 +469,7 @@ impl Codegen {
                     }
                     // fixup shifts
                     BinaryOperator::LeftShift => {
-                        let eax = Operand::Reg(RegisterType::AX);
+                        let eax = Operand::Reg(RegisterType::AX(RegisterSize::Four));
                         let cx = Operand::Reg(RegisterType::CX);
                         let cl = Operand::Reg(RegisterType::CL);
                         new_instructions.push(Instruction::Mov(src.clone(), cx.clone()));
@@ -476,7 +482,7 @@ impl Codegen {
                         new_instructions.push(Instruction::Mov(eax.clone(), dst.clone()));
                     }
                     BinaryOperator::RightShift => {
-                        let eax = Operand::Reg(RegisterType::AX);
+                        let eax = Operand::Reg(RegisterType::AX(RegisterSize::Four));
                         let cx = Operand::Reg(RegisterType::CX);
                         let cl = Operand::Reg(RegisterType::CL);
                         new_instructions.push(Instruction::Mov(src.clone(), cx.clone()));
@@ -491,7 +497,7 @@ impl Codegen {
                 },
                 // fixup Idiv instructions
                 Instruction::Idiv(op) => {
-                    let r10 = Operand::Reg(RegisterType::R10);
+                    let r10 = Operand::Reg(RegisterType::R10(RegisterSize::Four));
                     new_instructions.push(Instruction::Mov(op.clone(), r10.clone()));
                     new_instructions.push(Instruction::Idiv(r10.clone()));
                 }
@@ -500,13 +506,13 @@ impl Codegen {
                     match (src2, src1) {
                         // check if both sources are Stacks, if so split using register R10
                         (Operand::Stack(_), Operand::Stack(_)) => {
-                            let r10 = Operand::Reg(RegisterType::R10);
+                            let r10 = Operand::Reg(RegisterType::R10(RegisterSize::Four));
                             new_instructions.push(Instruction::Mov(src2.clone(), r10.clone()));
                             new_instructions.push(Instruction::Cmp(r10.clone(), src1.clone()));
                         }
                         // check if second op is a constant, if so split using register R11
                         (_, Operand::Imm(_)) => {
-                            let r11 = Operand::Reg(RegisterType::R11);
+                            let r11 = Operand::Reg(RegisterType::R11(RegisterSize::Four));
                             new_instructions.push(Instruction::Mov(src2.clone(), r11.clone()));
                             new_instructions.push(Instruction::Cmp(r11.clone(), src1.clone()));
                         }
