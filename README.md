@@ -6,11 +6,11 @@ A toy C compiler written in Rust, based on the book ["Writing a C Compiler"](htt
 ## Implemented features
 
 *Part I: The Basics*
- - [X] Chapter 1: A Minimal Compiler
- - [X] Chapter 2: Unary Operators
- - [X] Chapter 3: Binary Operators
- - [X] Chapter 3-extra: Bitwise Operators
- - [X] Chapter 4: Logical and Relational Operators
+ - [x] Chapter 1: A Minimal Compiler
+ - [x] Chapter 2: Unary Operators
+ - [x] Chapter 3: Binary Operators
+ - [x] Chapter 3-extra: Bitwise Operators
+ - [x] Chapter 4: Logical and Relational Operators
  - [ ] Chapter 5: Local Variables
  - [ ] Chapter 6: If Statements and Conditional Expressions
  - [ ] Chapter 7: Compound Statements
