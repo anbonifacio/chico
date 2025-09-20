@@ -40,14 +40,14 @@ impl TokenType {
             TokenType::Asterisk | TokenType::ForwardSlash | TokenType::Percent => 50,
             TokenType::Plus | TokenType::Hyphen => 45,
             TokenType::LeftShift | TokenType::RightShift => 40,
-            TokenType::BitwiseAnd => 39,
-            TokenType::BitwiseXor => 38,
-            TokenType::BitwiseOr => 37,
             TokenType::GreaterThan
             | TokenType::GreaterThanEq
             | TokenType::LessThan
             | TokenType::LessThanEq => 35,
             TokenType::Equal | TokenType::NotEqual => 30,
+            TokenType::BitwiseAnd => 25,
+            TokenType::BitwiseXor => 20,
+            TokenType::BitwiseOr => 15,
             TokenType::And => 10,
             TokenType::Or => 5,
             _ => 0,
