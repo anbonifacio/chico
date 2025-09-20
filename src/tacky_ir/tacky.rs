@@ -42,16 +42,16 @@ impl<'expr> TackyGenerator<'expr> {
         match expr {
             c_ast::Expr::Unary(operator, inner_expr_ref) => {
                 let src = self.emit_tacky(inner_expr_ref, instructions);
-                let dst_name = self.make_label("tmp", inner_expr_ref);
+                let dst_name = self.make_temporary(inner_expr_ref);
                 let dst = Val::Var(Identifier::Name(dst_name.clone()));
                 let tacky_op = self.convert_unop(operator);
                 instructions.append(Instruction::Unary(tacky_op, src, dst.clone()));
                 dst
             }
             c_ast::Expr::Binary(c_ast::BinaryOperator::And, left, right) => {
-                let dst_name = self.make_label("tmp", left);
-                let false_label = self.make_label("false", left);
-                let end_label = self.make_label("end", left);
+                let dst_name = self.make_temporary(left);
+                let false_label = self.make_label("and_false", left);
+                let end_label = self.make_label("and_end", left);
                 let dst = Val::Var(Identifier::Name(dst_name.clone()));
                 let v1 = self.emit_tacky(left, instructions);
                 instructions.append(Instruction::JumpIfZero(
@@ -71,9 +71,9 @@ impl<'expr> TackyGenerator<'expr> {
                 dst
             }
             c_ast::Expr::Binary(c_ast::BinaryOperator::Or, left, right) => {
-                let dst_name = self.make_label("tmp", left);
-                let false_label = self.make_label("false", left);
-                let end_label = self.make_label("end", left);
+                let dst_name = self.make_temporary(left);
+                let false_label = self.make_label("or_false", left);
+                let end_label = self.make_label("or_end", left);
                 let dst = Val::Var(Identifier::Name(dst_name.clone()));
                 let v1 = self.emit_tacky(left, instructions);
                 instructions.append(Instruction::JumpIfNotZero(
@@ -95,7 +95,7 @@ impl<'expr> TackyGenerator<'expr> {
             c_ast::Expr::Binary(operator, left, right) => {
                 let v1 = self.emit_tacky(left, instructions);
                 let v2 = self.emit_tacky(right, instructions);
-                let dst_name = self.make_label("tmp", left);
+                let dst_name = self.make_temporary(left);
                 let dst = Val::Var(Identifier::Name(dst_name.clone()));
                 let tacky_op = self.convert_binop(operator);
                 instructions.append(Instruction::Binary(tacky_op, v1, v2, dst.clone()));
@@ -105,8 +105,12 @@ impl<'expr> TackyGenerator<'expr> {
         }
     }
 
+    fn make_temporary(&self, expr_ref: &ExprRef) -> String {
+        format!("tmp.{}", expr_ref.id())
+    }
+
     fn make_label(&self, label: &str, expr_ref: &ExprRef) -> String {
-        format!("{}.{}", label, expr_ref.id())
+        format!("{}{}", label, expr_ref.id())
     }
 
     fn convert_unop(&self, operator: &c_ast::UnaryOperator) -> tacky_ast::UnaryOperator {
