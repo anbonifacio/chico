@@ -63,10 +63,10 @@ impl<'expr> TackyGenerator<'expr> {
                     v2,
                     Identifier::Name(false_label.clone()),
                 ));
-                instructions.append(Instruction::Copy(dst.clone(), Val::Constant(1)));
+                instructions.append(Instruction::Copy(Val::Constant(1), dst.clone()));
                 instructions.append(Instruction::Jump(Identifier::Name(end_label.clone())));
                 instructions.append(Instruction::Label(Identifier::Name(false_label)));
-                instructions.append(Instruction::Copy(dst.clone(), Val::Constant(0)));
+                instructions.append(Instruction::Copy(Val::Constant(0), dst.clone()));
                 instructions.append(Instruction::Label(Identifier::Name(end_label)));
                 dst
             }
@@ -85,10 +85,10 @@ impl<'expr> TackyGenerator<'expr> {
                     v2,
                     Identifier::Name(false_label.clone()),
                 ));
-                instructions.append(Instruction::Copy(dst.clone(), Val::Constant(1)));
+                instructions.append(Instruction::Copy(Val::Constant(1), dst.clone()));
                 instructions.append(Instruction::Jump(Identifier::Name(end_label.clone())));
                 instructions.append(Instruction::Label(Identifier::Name(false_label)));
-                instructions.append(Instruction::Copy(dst.clone(), Val::Constant(0)));
+                instructions.append(Instruction::Copy(Val::Constant(0), dst.clone()));
                 instructions.append(Instruction::Label(Identifier::Name(end_label)));
                 dst
             }
