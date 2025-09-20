@@ -76,6 +76,19 @@ pub enum CondCode {
     LE,
 }
 
+impl Display for CondCode {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            CondCode::E => write!(f, "e"),
+            CondCode::NE => write!(f, "ne"),
+            CondCode::G => write!(f, "g"),
+            CondCode::GE => write!(f, "ge"),
+            CondCode::L => write!(f, "l"),
+            CondCode::LE => write!(f, "le"),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub enum UnaryOperator {
     Neg,

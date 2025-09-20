@@ -513,8 +513,9 @@ impl Codegen {
                         // check if second op is a constant, if so split using register R11
                         (_, Operand::Imm(_)) => {
                             let r11 = Operand::Reg(RegisterType::R11(RegisterSize::FourBytes));
+                            let eax = Operand::Reg(RegisterType::AX(RegisterSize::FourBytes));
                             new_instructions.push(Instruction::Mov(src2.clone(), r11.clone()));
-                            new_instructions.push(Instruction::Cmp(r11.clone(), src1.clone()));
+                            new_instructions.push(Instruction::Cmp(eax.clone(), r11.clone()));
                         }
                         _ => new_instructions.push(Instruction::Cmp(src2.clone(), src1.clone())),
                     }
