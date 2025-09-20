@@ -139,6 +139,7 @@ impl Display for Expr {
 pub enum UnaryOperator {
     Complement,
     Negate,
+    Not,
 }
 
 impl Display for UnaryOperator {
@@ -146,6 +147,7 @@ impl Display for UnaryOperator {
         match self {
             UnaryOperator::Complement => write!(f, "'~'"),
             UnaryOperator::Negate => write!(f, "'-'"),
+            UnaryOperator::Not => write!(f, "'!'"),
         }
     }
 }
@@ -162,6 +164,14 @@ pub enum BinaryOperator {
     BitwiseXor,
     LeftShift,
     RightShift,
+    And,
+    Or,
+    Equal,
+    NotEqual,
+    LessThan,
+    LessOrEqual,
+    GreaterThan,
+    GreaterOrEqual,
 }
 
 impl Display for BinaryOperator {
@@ -177,6 +187,14 @@ impl Display for BinaryOperator {
             BinaryOperator::BitwiseXor => write!(f, "'^'"),
             BinaryOperator::LeftShift => write!(f, "'<<'"),
             BinaryOperator::RightShift => write!(f, "'>>'"),
+            BinaryOperator::And => write!(f, "'&&'"),
+            BinaryOperator::Or => write!(f, "'||'"),
+            BinaryOperator::Equal => write!(f, "'=='"),
+            BinaryOperator::NotEqual => write!(f, "'!='"),
+            BinaryOperator::LessThan => write!(f, "'<'"),
+            BinaryOperator::LessOrEqual => write!(f, "'<='"),
+            BinaryOperator::GreaterThan => write!(f, "'>'"),
+            BinaryOperator::GreaterOrEqual => write!(f, "'>='"),
         }
     }
 }

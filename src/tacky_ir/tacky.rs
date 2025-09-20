@@ -69,6 +69,7 @@ impl<'expr> TackyGenerator<'expr> {
         match operator {
             c_ast::UnaryOperator::Negate => tacky_ast::UnaryOperator::Negate,
             c_ast::UnaryOperator::Complement => tacky_ast::UnaryOperator::Complement,
+            c_ast::UnaryOperator::Not => todo!(),
         }
     }
 
@@ -84,6 +85,14 @@ impl<'expr> TackyGenerator<'expr> {
             c_ast::BinaryOperator::BitwiseXor => BinaryOperator::BitwiseXor,
             c_ast::BinaryOperator::LeftShift => BinaryOperator::LeftShift,
             c_ast::BinaryOperator::RightShift => BinaryOperator::RightShift,
+            c_ast::BinaryOperator::And => todo!(),
+            c_ast::BinaryOperator::Or => todo!(),
+            c_ast::BinaryOperator::Equal => todo!(),
+            c_ast::BinaryOperator::NotEqual => todo!(),
+            c_ast::BinaryOperator::LessThan => todo!(),
+            c_ast::BinaryOperator::LessOrEqual => todo!(),
+            c_ast::BinaryOperator::GreaterThan => todo!(),
+            c_ast::BinaryOperator::GreaterOrEqual => todo!(),
         }
     }
 }

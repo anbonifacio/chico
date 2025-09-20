@@ -37,8 +37,8 @@ static EQUAL: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"==").unwrap());
 static NOT_EQUAL: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"!=").unwrap());
 static LESS_THEN: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"<").unwrap());
 static GREATER_THEN: LazyLock<Regex> = LazyLock::new(|| Regex::new(r">").unwrap());
-static LESS_THEN_EQ: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"<=").unwrap());
-static GREATER_THEN_EQ: LazyLock<Regex> = LazyLock::new(|| Regex::new(r">=").unwrap());
+static LESS_OR_EQ: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"<=").unwrap());
+static GREATER_OR_EQ: LazyLock<Regex> = LazyLock::new(|| Regex::new(r">=").unwrap());
 
 static PATTERNS: LazyLock<Vec<(&Regex, TokenType)>> = LazyLock::new(|| {
     vec![
@@ -70,8 +70,8 @@ static PATTERNS: LazyLock<Vec<(&Regex, TokenType)>> = LazyLock::new(|| {
         (&*OR, TokenType::Or),
         (&*EQUAL, TokenType::Equal),
         (&*NOT_EQUAL, TokenType::NotEqual),
-        (&*LESS_THEN_EQ, TokenType::LessThanEq),
-        (&*GREATER_THEN_EQ, TokenType::GreaterThanEq),
+        (&*LESS_OR_EQ, TokenType::LessThanEq),
+        (&*GREATER_OR_EQ, TokenType::GreaterThanEq),
         (&*LESS_THEN, TokenType::LessThan),
         (&*GREATER_THEN, TokenType::GreaterThan),
     ]
