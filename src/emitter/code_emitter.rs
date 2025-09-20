@@ -186,12 +186,9 @@ fn match_operand(src: &Operand) -> String {
         Operand::Imm(int) => {
             format!("${}", int)
         }
-        Operand::Reg(reg) => match reg {
-            RegisterType::AX => "%eax".to_string(),
-            RegisterType::DX => "%edx".to_string(),
-            RegisterType::R10 => "%r10d".to_string(),
-            RegisterType::R11 => "%r11d".to_string(),
-        },
+        Operand::Reg(reg) => {
+            format!("%{}", reg)
+        }
         Operand::Pseudo(_) => unsafe {
             // Safety: Pseudo Registers are already fixed up here.
             unreachable_unchecked()

@@ -358,6 +358,33 @@ impl Codegen {
                             dst.clone(),
                         ));
                     }
+                    // fixup shifts
+                    BinaryOperator::LeftShift => {
+                        let eax = Operand::Reg(RegisterType::AX);
+                        let cx = Operand::Reg(RegisterType::CX);
+                        let cl = Operand::Reg(RegisterType::CL);
+                        new_instructions.push(Instruction::Mov(src.clone(), cx.clone()));
+                        new_instructions.push(Instruction::Mov(dst.clone(), eax.clone()));
+                        new_instructions.push(Instruction::Binary(
+                            BinaryOperator::LeftShift,
+                            cl.clone(),
+                            eax.clone(),
+                        ));
+                        new_instructions.push(Instruction::Mov(eax.clone(), dst.clone()));
+                    }
+                    BinaryOperator::RightShift => {
+                        let eax = Operand::Reg(RegisterType::AX);
+                        let cx = Operand::Reg(RegisterType::CX);
+                        let cl = Operand::Reg(RegisterType::CL);
+                        new_instructions.push(Instruction::Mov(src.clone(), cx.clone()));
+                        new_instructions.push(Instruction::Mov(dst.clone(), eax.clone()));
+                        new_instructions.push(Instruction::Binary(
+                            BinaryOperator::RightShift,
+                            cl.clone(),
+                            eax.clone(),
+                        ));
+                        new_instructions.push(Instruction::Mov(eax.clone(), dst.clone()));
+                    }
                     _ => new_instructions.push(instruction.clone()),
                 },
                 // fixup Idiv instructions
