@@ -385,7 +385,6 @@ impl Codegen {
                         ));
                         new_instructions.push(Instruction::Mov(eax.clone(), dst.clone()));
                     }
-                    _ => new_instructions.push(instruction.clone()),
                 },
                 // fixup Idiv instructions
                 Instruction::Idiv(op) => {
