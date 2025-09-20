@@ -10,7 +10,7 @@ A toy C compiler written in Rust, based on the book ["Writing a C Compiler"](htt
  - [x] Chapter 2: Unary Operators
  - [x] Chapter 3: Binary Operators
  - [x] Chapter 3-extra: Bitwise Operators
- - [ ] Chapter 4: Logical and Relational Operators
+ - [x] Chapter 4: Logical and Relational Operators
  - [ ] Chapter 5: Local Variables
  - [ ] Chapter 6: If Statements and Conditional Expressions
  - [ ] Chapter 7: Compound Statements

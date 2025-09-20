@@ -94,7 +94,7 @@ impl<'expr> CParser<'expr> {
                     log::debug!("Parsed constant: {}", self.expr_pool.get_expr(expr_ref));
                     Ok(expr_ref)
                 }
-                TokenType::Tilde | TokenType::Hyphen => {
+                TokenType::Tilde | TokenType::Hyphen | TokenType::Not => {
                     let token = self.extract_token(tokens_iter)?;
                     let operator = self.parse_unop(token)?;
                     let inner_expr = self.parse_factor(tokens_iter)?;
@@ -174,6 +174,7 @@ impl<'expr> CParser<'expr> {
         match token.token_type {
             TokenType::Tilde => Ok(UnaryOperator::Complement),
             TokenType::Hyphen => Ok(UnaryOperator::Negate),
+            TokenType::Not => Ok(UnaryOperator::Not),
             _ => Err(std::io::Error::new(
                 std::io::ErrorKind::InvalidInput,
                 format!("Expected unary operator, found {:?}", token.token_type),
@@ -235,6 +236,14 @@ impl<'expr> CParser<'expr> {
                 TokenType::BitwiseXor => Ok(BinaryOperator::BitwiseXor),
                 TokenType::LeftShift => Ok(BinaryOperator::LeftShift),
                 TokenType::RightShift => Ok(BinaryOperator::RightShift),
+                TokenType::And => Ok(BinaryOperator::And),
+                TokenType::Or => Ok(BinaryOperator::Or),
+                TokenType::Equal => Ok(BinaryOperator::Equal),
+                TokenType::NotEqual => Ok(BinaryOperator::NotEqual),
+                TokenType::LessThan => Ok(BinaryOperator::LessThan),
+                TokenType::LessThanEq => Ok(BinaryOperator::LessOrEqual),
+                TokenType::GreaterThan => Ok(BinaryOperator::GreaterThan),
+                TokenType::GreaterThanEq => Ok(BinaryOperator::GreaterOrEqual),
                 _ => Err(std::io::Error::new(
                     std::io::ErrorKind::InvalidInput,
                     format!("Expected binary operator, found {:?}", token.token_type),
