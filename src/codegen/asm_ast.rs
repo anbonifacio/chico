@@ -71,6 +71,11 @@ pub enum BinaryOperator {
     Add,
     Sub,
     Mult,
+    BitwiseAnd,
+    BitwiseOr,
+    BitwiseXor,
+    LeftShift,
+    RightShift,
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
@@ -90,29 +95,11 @@ impl Operand {
                 RegisterType::DX => Ok(Operand::Reg(RegisterType::DX)),
                 RegisterType::R10 => Ok(Operand::Reg(RegisterType::R10)),
                 RegisterType::R11 => Ok(Operand::Reg(RegisterType::R11)),
+                RegisterType::CX => Ok(Operand::Reg(RegisterType::CX)),
+                RegisterType::CL => Ok(Operand::Reg(RegisterType::CL)),
             },
             Operand::Pseudo(identifier) => Ok(Operand::Pseudo(Identifier::Name(identifier.name()))),
             Operand::Stack(offset) => Ok(Operand::Stack(*offset)),
-        }
-    }
-
-    pub fn get_pseudo_identifier(&self) -> std::io::Result<Operand> {
-        match self {
-            Operand::Pseudo(identifier) => Ok(Operand::Pseudo(Identifier::Name(identifier.name()))),
-            _ => Err(std::io::Error::new(
-                std::io::ErrorKind::InvalidInput,
-                "Not a Pseudo Register",
-            )),
-        }
-    }
-
-    pub fn get_imm(&self) -> std::io::Result<Operand> {
-        match self {
-            Operand::Imm(value) => Ok(Operand::Imm(*value)),
-            _ => Err(std::io::Error::new(
-                std::io::ErrorKind::InvalidInput,
-                "Not an immediate value",
-            )),
         }
     }
 }
@@ -123,6 +110,8 @@ pub enum RegisterType {
     DX,
     R10,
     R11,
+    CX,
+    CL,
 }
 
 impl Display for RegisterType {
@@ -130,8 +119,10 @@ impl Display for RegisterType {
         match self {
             RegisterType::AX => write!(f, "eax"),
             RegisterType::DX => write!(f, "edx"),
-            RegisterType::R10 => write!(f, "r10"),
-            RegisterType::R11 => write!(f, "r11"),
+            RegisterType::R10 => write!(f, "r10d"),
+            RegisterType::R11 => write!(f, "r11d"),
+            RegisterType::CX => write!(f, "ecx"),
+            RegisterType::CL => write!(f, "cl"),
         }
     }
 }

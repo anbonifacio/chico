@@ -104,6 +104,46 @@ impl CodeEmitter {
                                             .as_bytes(),
                                         )?;
                                     }
+                                    BinaryOperator::BitwiseAnd => self.output.write_all(
+                                        format!(
+                                            "    andl   {}, {}\n",
+                                            match_operand(src),
+                                            match_operand(dst)
+                                        )
+                                        .as_bytes(),
+                                    )?,
+                                    BinaryOperator::BitwiseOr => self.output.write_all(
+                                        format!(
+                                            "    orl    {}, {}\n",
+                                            match_operand(src),
+                                            match_operand(dst)
+                                        )
+                                        .as_bytes(),
+                                    )?,
+                                    BinaryOperator::BitwiseXor => self.output.write_all(
+                                        format!(
+                                            "    xorl   {}, {}\n",
+                                            match_operand(src),
+                                            match_operand(dst)
+                                        )
+                                        .as_bytes(),
+                                    )?,
+                                    BinaryOperator::LeftShift => self.output.write_all(
+                                        format!(
+                                            "    shll   {}, {}\n",
+                                            match_operand(src),
+                                            match_operand(dst)
+                                        )
+                                        .as_bytes(),
+                                    )?,
+                                    BinaryOperator::RightShift => self.output.write_all(
+                                        format!(
+                                            "    sarl   {}, {}\n",
+                                            match_operand(src),
+                                            match_operand(dst)
+                                        )
+                                        .as_bytes(),
+                                    )?,
                                 },
                                 Instruction::Idiv(operand) => self.output.write_all(
                                     format!("    idivl  {}\n", match_operand(operand)).as_bytes(),
@@ -146,12 +186,9 @@ fn match_operand(src: &Operand) -> String {
         Operand::Imm(int) => {
             format!("${}", int)
         }
-        Operand::Reg(reg) => match reg {
-            RegisterType::AX => "%eax".to_string(),
-            RegisterType::DX => "%edx".to_string(),
-            RegisterType::R10 => "%r10d".to_string(),
-            RegisterType::R11 => "%r11d".to_string(),
-        },
+        Operand::Reg(reg) => {
+            format!("%{}", reg)
+        }
         Operand::Pseudo(_) => unsafe {
             // Safety: Pseudo Registers are already fixed up here.
             unreachable_unchecked()

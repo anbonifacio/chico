@@ -18,13 +18,22 @@ pub enum TokenType {
     Asterisk,
     ForwardSlash,
     Percent,
+    BitwiseAnd,
+    BitwiseOr,
+    BitwiseXor,
+    LeftShift,
+    RightShift,
 }
 
 impl TokenType {
     pub fn precedence(&self) -> u8 {
         match self {
-            TokenType::Plus | TokenType::Hyphen => 45,
             TokenType::Asterisk | TokenType::ForwardSlash | TokenType::Percent => 50,
+            TokenType::Plus | TokenType::Hyphen => 45,
+            TokenType::LeftShift | TokenType::RightShift => 40,
+            TokenType::BitwiseAnd => 35,
+            TokenType::BitwiseXor => 30,
+            TokenType::BitwiseOr => 25,
             _ => 0,
         }
     }
@@ -37,6 +46,11 @@ impl TokenType {
                 | TokenType::Asterisk
                 | TokenType::ForwardSlash
                 | TokenType::Percent
+                | TokenType::BitwiseAnd
+                | TokenType::BitwiseOr
+                | TokenType::BitwiseXor
+                | TokenType::LeftShift
+                | TokenType::RightShift
         )
     }
 }

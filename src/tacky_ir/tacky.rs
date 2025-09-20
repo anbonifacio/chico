@@ -79,6 +79,11 @@ impl<'expr> TackyGenerator<'expr> {
             c_ast::BinaryOperator::Multiply => BinaryOperator::Multiply,
             c_ast::BinaryOperator::Divide => BinaryOperator::Divide,
             c_ast::BinaryOperator::Remainder => BinaryOperator::Remainder,
+            c_ast::BinaryOperator::BitwiseAnd => BinaryOperator::BitwiseAnd,
+            c_ast::BinaryOperator::BitwiseOr => BinaryOperator::BitwiseOr,
+            c_ast::BinaryOperator::BitwiseXor => BinaryOperator::BitwiseXor,
+            c_ast::BinaryOperator::LeftShift => BinaryOperator::LeftShift,
+            c_ast::BinaryOperator::RightShift => BinaryOperator::RightShift,
         }
     }
 }

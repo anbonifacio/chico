@@ -157,6 +157,11 @@ pub enum BinaryOperator {
     Multiply,
     Divide,
     Remainder,
+    BitwiseAnd,
+    BitwiseOr,
+    BitwiseXor,
+    LeftShift,
+    RightShift,
 }
 
 impl Display for BinaryOperator {
@@ -167,6 +172,11 @@ impl Display for BinaryOperator {
             BinaryOperator::Multiply => write!(f, "'*'"),
             BinaryOperator::Divide => write!(f, "'/'"),
             BinaryOperator::Remainder => write!(f, "'%'"),
+            BinaryOperator::BitwiseAnd => write!(f, "'&'"),
+            BinaryOperator::BitwiseOr => write!(f, "'|'"),
+            BinaryOperator::BitwiseXor => write!(f, "'^'"),
+            BinaryOperator::LeftShift => write!(f, "'<<'"),
+            BinaryOperator::RightShift => write!(f, "'>>'"),
         }
     }
 }

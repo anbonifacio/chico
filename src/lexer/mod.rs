@@ -25,9 +25,14 @@ static PLUS_PLUS: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?:\+\+)").unw
 static ASTERISK: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\*").unwrap());
 static FORWARD_SLASH: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"/").unwrap());
 static PERCENT: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"%").unwrap());
+static BITWISE_AND: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"&").unwrap());
+static BITWISE_OR: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\|").unwrap());
+static BITWISE_XOR: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\^").unwrap());
+static LEFT_SHIFT: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"<<").unwrap());
+static RIGHT_SHIFT: LazyLock<Regex> = LazyLock::new(|| Regex::new(r">>").unwrap());
 
-static PATTERNS: LazyLock<[(&Regex, TokenType); 18]> = LazyLock::new(|| {
-    [
+static PATTERNS: LazyLock<Vec<(&Regex, TokenType)>> = LazyLock::new(|| {
+    vec![
         (&*INT_KEYWORD, TokenType::IntKeyword),
         (&*VOID_KEYWORD, TokenType::VoidKeyword),
         (&*RETURN_KEYWORD, TokenType::ReturnKeyword),
@@ -46,5 +51,10 @@ static PATTERNS: LazyLock<[(&Regex, TokenType); 18]> = LazyLock::new(|| {
         (&*ASTERISK, TokenType::Asterisk),
         (&*FORWARD_SLASH, TokenType::ForwardSlash),
         (&*PERCENT, TokenType::Percent),
+        (&*BITWISE_AND, TokenType::BitwiseAnd),
+        (&*BITWISE_OR, TokenType::BitwiseOr),
+        (&*BITWISE_XOR, TokenType::BitwiseXor),
+        (&*LEFT_SHIFT, TokenType::LeftShift),
+        (&*RIGHT_SHIFT, TokenType::RightShift),
     ]
 });

@@ -160,6 +160,11 @@ impl Codegen {
                     tacky_ast::BinaryOperator::Add => BinaryOperator::Add,
                     tacky_ast::BinaryOperator::Subtract => BinaryOperator::Sub,
                     tacky_ast::BinaryOperator::Multiply => BinaryOperator::Mult,
+                    tacky_ast::BinaryOperator::BitwiseAnd => BinaryOperator::BitwiseAnd,
+                    tacky_ast::BinaryOperator::BitwiseOr => BinaryOperator::BitwiseOr,
+                    tacky_ast::BinaryOperator::BitwiseXor => BinaryOperator::BitwiseXor,
+                    tacky_ast::BinaryOperator::LeftShift => BinaryOperator::LeftShift,
+                    tacky_ast::BinaryOperator::RightShift => BinaryOperator::RightShift,
                     _ => unsafe {
                         // Safety: Divide and Remainder are already matched on their own
                         unreachable_unchecked()
@@ -205,6 +210,11 @@ impl Codegen {
                         BinaryOperator::Add => BinaryOperator::Add,
                         BinaryOperator::Sub => BinaryOperator::Sub,
                         BinaryOperator::Mult => BinaryOperator::Mult,
+                        BinaryOperator::BitwiseAnd => BinaryOperator::BitwiseAnd,
+                        BinaryOperator::BitwiseOr => BinaryOperator::BitwiseOr,
+                        BinaryOperator::BitwiseXor => BinaryOperator::BitwiseXor,
+                        BinaryOperator::LeftShift => BinaryOperator::LeftShift,
+                        BinaryOperator::RightShift => BinaryOperator::RightShift,
                     };
                     let stack1 = self.match_operand(src)?;
                     let stack2 = self.match_operand(dst)?;
@@ -291,7 +301,7 @@ impl Codegen {
                         _ => new_instructions.push(Instruction::Mov(src.clone(), dst.clone())),
                     }
                 }
-                // fixup Add, Sub, Mult instructions
+                // fixup Add, Sub, Mult, BitwiseAnd, BitwiseOr instructions
                 Instruction::Binary(binop, src, dst) => match binop {
                     BinaryOperator::Add => {
                         let r10 = Operand::Reg(RegisterType::R10);
@@ -320,6 +330,60 @@ impl Codegen {
                             r11.clone(),
                         ));
                         new_instructions.push(Instruction::Mov(r11.clone(), dst.clone()));
+                    }
+                    BinaryOperator::BitwiseAnd => {
+                        let r10 = Operand::Reg(RegisterType::R10);
+                        new_instructions.push(Instruction::Mov(src.clone(), r10.clone()));
+                        new_instructions.push(Instruction::Binary(
+                            BinaryOperator::BitwiseAnd,
+                            r10.clone(),
+                            dst.clone(),
+                        ));
+                    }
+                    BinaryOperator::BitwiseOr => {
+                        let r10 = Operand::Reg(RegisterType::R10);
+                        new_instructions.push(Instruction::Mov(src.clone(), r10.clone()));
+                        new_instructions.push(Instruction::Binary(
+                            BinaryOperator::BitwiseOr,
+                            r10.clone(),
+                            dst.clone(),
+                        ));
+                    }
+                    BinaryOperator::BitwiseXor => {
+                        let r10 = Operand::Reg(RegisterType::R10);
+                        new_instructions.push(Instruction::Mov(src.clone(), r10.clone()));
+                        new_instructions.push(Instruction::Binary(
+                            BinaryOperator::BitwiseXor,
+                            r10.clone(),
+                            dst.clone(),
+                        ));
+                    }
+                    // fixup shifts
+                    BinaryOperator::LeftShift => {
+                        let eax = Operand::Reg(RegisterType::AX);
+                        let cx = Operand::Reg(RegisterType::CX);
+                        let cl = Operand::Reg(RegisterType::CL);
+                        new_instructions.push(Instruction::Mov(src.clone(), cx.clone()));
+                        new_instructions.push(Instruction::Mov(dst.clone(), eax.clone()));
+                        new_instructions.push(Instruction::Binary(
+                            BinaryOperator::LeftShift,
+                            cl.clone(),
+                            eax.clone(),
+                        ));
+                        new_instructions.push(Instruction::Mov(eax.clone(), dst.clone()));
+                    }
+                    BinaryOperator::RightShift => {
+                        let eax = Operand::Reg(RegisterType::AX);
+                        let cx = Operand::Reg(RegisterType::CX);
+                        let cl = Operand::Reg(RegisterType::CL);
+                        new_instructions.push(Instruction::Mov(src.clone(), cx.clone()));
+                        new_instructions.push(Instruction::Mov(dst.clone(), eax.clone()));
+                        new_instructions.push(Instruction::Binary(
+                            BinaryOperator::RightShift,
+                            cl.clone(),
+                            eax.clone(),
+                        ));
+                        new_instructions.push(Instruction::Mov(eax.clone(), dst.clone()));
                     }
                 },
                 // fixup Idiv instructions
