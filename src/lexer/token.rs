@@ -23,6 +23,15 @@ pub enum TokenType {
     BitwiseXor,
     LeftShift,
     RightShift,
+    Not,
+    And,
+    Or,
+    Equal,
+    NotEqual,
+    LessThan,
+    GreaterThan,
+    LessThanEq,
+    GreaterThanEq,
 }
 
 impl TokenType {
@@ -51,6 +60,14 @@ impl TokenType {
                 | TokenType::BitwiseXor
                 | TokenType::LeftShift
                 | TokenType::RightShift
+                | TokenType::And
+                | TokenType::Or
+                | TokenType::NotEqual
+                | TokenType::LessThan
+                | TokenType::GreaterThan
+                | TokenType::LessThanEq
+                | TokenType::GreaterThanEq
+                | TokenType::Equal
         )
     }
 }
