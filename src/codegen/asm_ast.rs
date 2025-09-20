@@ -111,8 +111,7 @@ impl Operand {
                 RegisterType::DX(size) => Ok(Operand::Reg(RegisterType::DX(*size))),
                 RegisterType::R10(size) => Ok(Operand::Reg(RegisterType::R10(*size))),
                 RegisterType::R11(size) => Ok(Operand::Reg(RegisterType::R11(*size))),
-                RegisterType::CX => Ok(Operand::Reg(RegisterType::CX)),
-                RegisterType::CL => Ok(Operand::Reg(RegisterType::CL)),
+                RegisterType::CX(size) => Ok(Operand::Reg(RegisterType::CX(*size))),
             },
             Operand::Pseudo(identifier) => Ok(Operand::Pseudo(Identifier::Name(identifier.name()))),
             Operand::Stack(offset) => Ok(Operand::Stack(*offset)),
@@ -126,29 +125,28 @@ pub enum RegisterType {
     DX(RegisterSize),
     R10(RegisterSize),
     R11(RegisterSize),
-    CX,
-    CL,
+    CX(RegisterSize),
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum RegisterSize {
-    One,
-    Four,
+    OneByte,
+    FourBytes,
 }
 
 impl Display for RegisterType {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            RegisterType::AX(RegisterSize::Four) => write!(f, "eax"),
-            RegisterType::AX(RegisterSize::One) => write!(f, "al"),
-            RegisterType::DX(RegisterSize::Four) => write!(f, "edx"),
-            RegisterType::DX(RegisterSize::One) => write!(f, "dl"),
-            RegisterType::R10(RegisterSize::Four) => write!(f, "r10d"),
-            RegisterType::R10(RegisterSize::One) => write!(f, "r10b"),
-            RegisterType::R11(RegisterSize::Four) => write!(f, "r11d"),
-            RegisterType::R11(RegisterSize::One) => write!(f, "r11b"),
-            RegisterType::CX => write!(f, "ecx"),
-            RegisterType::CL => write!(f, "cl"),
+            RegisterType::AX(RegisterSize::FourBytes) => write!(f, "eax"),
+            RegisterType::AX(RegisterSize::OneByte) => write!(f, "al"),
+            RegisterType::DX(RegisterSize::FourBytes) => write!(f, "edx"),
+            RegisterType::DX(RegisterSize::OneByte) => write!(f, "dl"),
+            RegisterType::R10(RegisterSize::FourBytes) => write!(f, "r10d"),
+            RegisterType::R10(RegisterSize::OneByte) => write!(f, "r10b"),
+            RegisterType::R11(RegisterSize::FourBytes) => write!(f, "r11d"),
+            RegisterType::R11(RegisterSize::OneByte) => write!(f, "r11b"),
+            RegisterType::CX(RegisterSize::FourBytes) => write!(f, "ecx"),
+            RegisterType::CX(RegisterSize::OneByte) => write!(f, "cl"),
         }
     }
 }
