@@ -3,6 +3,9 @@ use std::hint::unreachable_unchecked;
 
 use crate::codegen::asm_ast::*;
 use crate::tacky_ir::tacky_ast;
+use crate::tacky_ir::tacky_ast::BinaryOperator::{
+    Divide, Equal, GreaterOrEqual, GreaterThan, LessOrEqual, LessThan, NotEqual, Remainder,
+};
 use crate::tacky_ir::tacky_ast::{Instructions, TackyIR};
 
 #[derive(Debug)]
@@ -81,21 +84,58 @@ impl Codegen {
                 } else {
                     Operand::Imm(src.constant()?)
                 };
-                asm_instructions.push(Instruction::Mov(
-                    src,
-                    Operand::Pseudo(Identifier::Name(dst.var()?)),
-                ));
-                let operator = match operator {
-                    tacky_ast::UnaryOperator::Negate => UnaryOperator::Neg,
-                    tacky_ast::UnaryOperator::Complement => UnaryOperator::Not,
-                    tacky_ast::UnaryOperator::Not => todo!(),
-                };
-                asm_instructions.push(Instruction::Unary(
-                    operator,
-                    Operand::Pseudo(Identifier::Name(dst.var()?)),
-                ));
+                match operator {
+                    tacky_ast::UnaryOperator::Negate => {
+                        asm_instructions.push(Instruction::Mov(
+                            src,
+                            Operand::Pseudo(Identifier::Name(dst.var()?)),
+                        ));
+                        asm_instructions.push(Instruction::Unary(
+                            UnaryOperator::Neg,
+                            Operand::Pseudo(Identifier::Name(dst.var()?)),
+                        ));
+                    }
+                    tacky_ast::UnaryOperator::Complement => {
+                        asm_instructions.push(Instruction::Mov(
+                            src,
+                            Operand::Pseudo(Identifier::Name(dst.var()?)),
+                        ));
+                        asm_instructions.push(Instruction::Unary(
+                            UnaryOperator::Not,
+                            Operand::Pseudo(Identifier::Name(dst.var()?)),
+                        ));
+                    }
+                    tacky_ast::UnaryOperator::Not => {
+                        let dst = if let Ok(dst) = dst.var() {
+                            Operand::Pseudo(Identifier::Name(dst))
+                        } else {
+                            Operand::Imm(dst.constant()?)
+                        };
+                        asm_instructions.push(Instruction::Cmp(Operand::Imm(0), src));
+                        asm_instructions.push(Instruction::Mov(Operand::Imm(0), dst.clone()));
+                        asm_instructions.push(Instruction::SetCC(CondCode::E, dst));
+                    }
+                }
             }
-            tacky_ast::Instruction::Binary(tacky_ast::BinaryOperator::Divide, src1, src2, dst) => {
+            tacky_ast::Instruction::Binary(Equal, src1, src2, dst) => {
+                self.generate_relational_operator(asm_instructions, CondCode::E, src1, src2, dst)?;
+            }
+            tacky_ast::Instruction::Binary(NotEqual, src1, src2, dst) => {
+                self.generate_relational_operator(asm_instructions, CondCode::NE, src1, src2, dst)?;
+            }
+            tacky_ast::Instruction::Binary(GreaterThan, src1, src2, dst) => {
+                self.generate_relational_operator(asm_instructions, CondCode::G, src1, src2, dst)?;
+            }
+            tacky_ast::Instruction::Binary(GreaterOrEqual, src1, src2, dst) => {
+                self.generate_relational_operator(asm_instructions, CondCode::GE, src1, src2, dst)?;
+            }
+            tacky_ast::Instruction::Binary(LessThan, src1, src2, dst) => {
+                self.generate_relational_operator(asm_instructions, CondCode::L, src1, src2, dst)?;
+            }
+            tacky_ast::Instruction::Binary(LessOrEqual, src1, src2, dst) => {
+                self.generate_relational_operator(asm_instructions, CondCode::LE, src1, src2, dst)?;
+            }
+            tacky_ast::Instruction::Binary(Divide, src1, src2, dst) => {
                 let src1 = if let Ok(src) = src1.var() {
                     Operand::Pseudo(Identifier::Name(src))
                 } else {
@@ -114,12 +154,7 @@ impl Codegen {
                     Operand::Pseudo(Identifier::Name(dst.var()?)),
                 ));
             }
-            tacky_ast::Instruction::Binary(
-                tacky_ast::BinaryOperator::Remainder,
-                src1,
-                src2,
-                dst,
-            ) => {
+            tacky_ast::Instruction::Binary(Remainder, src1, src2, dst) => {
                 let src1 = if let Ok(src) = src1.var() {
                     Operand::Pseudo(Identifier::Name(src))
                 } else {
@@ -167,7 +202,7 @@ impl Codegen {
                     tacky_ast::BinaryOperator::LeftShift => BinaryOperator::LeftShift,
                     tacky_ast::BinaryOperator::RightShift => BinaryOperator::RightShift,
                     _ => unsafe {
-                        // Safety: Divide and Remainder are already matched on their own
+                        // Safety: Other operators are already matched on their own
                         unreachable_unchecked()
                     },
                 };
@@ -177,11 +212,55 @@ impl Codegen {
                     Operand::Pseudo(Identifier::Name(dst.var()?)),
                 ))
             }
-            tacky_ast::Instruction::Copy(src, dst) => todo!(),
-            tacky_ast::Instruction::Jump(target) => todo!(),
-            tacky_ast::Instruction::JumpIfZero(condition, target) => todo!(),
-            tacky_ast::Instruction::JumpIfNotZero(condition, target) => todo!(),
-            tacky_ast::Instruction::Label(target) => todo!(),
+            tacky_ast::Instruction::JumpIfZero(val, target) => {
+                let val = match val {
+                    tacky_ast::Val::Constant(int) => Operand::Imm(*int),
+                    tacky_ast::Val::Var(identifier) => {
+                        Operand::Pseudo(Identifier::Name(identifier.name().to_string()))
+                    }
+                };
+                asm_instructions.push(Instruction::Cmp(Operand::Imm(0), val));
+                asm_instructions.push(Instruction::JmpCC(
+                    CondCode::E,
+                    Identifier::Name(target.name().to_string()),
+                ));
+            }
+            tacky_ast::Instruction::JumpIfNotZero(val, target) => {
+                let val = match val {
+                    tacky_ast::Val::Constant(int) => Operand::Imm(*int),
+                    tacky_ast::Val::Var(identifier) => {
+                        Operand::Pseudo(Identifier::Name(identifier.name().to_string()))
+                    }
+                };
+                asm_instructions.push(Instruction::Cmp(Operand::Imm(0), val));
+                asm_instructions.push(Instruction::JmpCC(
+                    CondCode::NE,
+                    Identifier::Name(target.name().to_string()),
+                ));
+            }
+            tacky_ast::Instruction::Copy(src, dst) => {
+                let src = if let Ok(src) = src.var() {
+                    Operand::Pseudo(Identifier::Name(src))
+                } else {
+                    Operand::Imm(src.constant()?)
+                };
+                let dst = if let Ok(dst) = dst.var() {
+                    Operand::Pseudo(Identifier::Name(dst))
+                } else {
+                    Operand::Imm(dst.constant()?)
+                };
+                asm_instructions.push(Instruction::Mov(src, dst));
+            }
+            tacky_ast::Instruction::Jump(target) => {
+                asm_instructions.push(Instruction::Jmp(Identifier::Name(
+                    target.name().to_string(),
+                )));
+            }
+            tacky_ast::Instruction::Label(target) => {
+                asm_instructions.push(Instruction::Label(Identifier::Name(
+                    target.name().to_string(),
+                )));
+            }
         }
         Ok(())
     }
@@ -231,6 +310,24 @@ impl Codegen {
                     Instruction::Idiv(op)
                 }
                 Instruction::Cdq => Instruction::Cdq,
+                Instruction::Jmp(identifier) => {
+                    Instruction::Jmp(Identifier::Name(identifier.name().to_string()))
+                }
+                Instruction::JmpCC(cond_code, identifier) => {
+                    Instruction::JmpCC(*cond_code, Identifier::Name(identifier.name().to_string()))
+                }
+                Instruction::SetCC(cond_code, operand) => {
+                    let stack = self.match_operand(operand)?;
+                    Instruction::SetCC(*cond_code, stack)
+                }
+                Instruction::Label(identifier) => {
+                    Instruction::Label(Identifier::Name(identifier.name().to_string()))
+                }
+                Instruction::Cmp(src2, src1) => {
+                    let stack1 = self.match_operand(src1)?;
+                    let stack2 = self.match_operand(src2)?;
+                    Instruction::Cmp(stack2, stack1)
+                }
             };
             new_instructions.push(new_instruction);
         }
@@ -398,6 +495,24 @@ impl Codegen {
                     new_instructions.push(Instruction::Mov(op.clone(), r10.clone()));
                     new_instructions.push(Instruction::Idiv(r10.clone()));
                 }
+                // fixup Cmp
+                Instruction::Cmp(src2, src1) => {
+                    match (src2, src1) {
+                        // check if both sources are Stacks, if so split using register R10
+                        (Operand::Stack(_), Operand::Stack(_)) => {
+                            let r10 = Operand::Reg(RegisterType::R10);
+                            new_instructions.push(Instruction::Mov(src2.clone(), r10.clone()));
+                            new_instructions.push(Instruction::Cmp(r10.clone(), src1.clone()));
+                        }
+                        // check if second op is a constant, if so split using register R11
+                        (_, Operand::Imm(_)) => {
+                            let r11 = Operand::Reg(RegisterType::R11);
+                            new_instructions.push(Instruction::Mov(src2.clone(), r11.clone()));
+                            new_instructions.push(Instruction::Cmp(r11.clone(), src1.clone()));
+                        }
+                        _ => new_instructions.push(Instruction::Cmp(src2.clone(), src1.clone())),
+                    }
+                }
                 _ => new_instructions.push(instruction.clone()),
             };
         }
@@ -406,5 +521,35 @@ impl Codegen {
             identifier,
             new_instructions,
         )))
+    }
+
+    fn generate_relational_operator(
+        &self,
+        asm_instructions: &mut Vec<Instruction>,
+        cond_code: CondCode,
+        src1: &tacky_ast::Val,
+        src2: &tacky_ast::Val,
+        dst: &tacky_ast::Val,
+    ) -> Result<(), std::io::Error> {
+        let src1 = if let Ok(src) = src1.var() {
+            Operand::Pseudo(Identifier::Name(src))
+        } else {
+            Operand::Imm(src1.constant()?)
+        };
+        let src2 = if let Ok(src) = src2.var() {
+            Operand::Pseudo(Identifier::Name(src))
+        } else {
+            Operand::Imm(src2.constant()?)
+        };
+        asm_instructions.push(Instruction::Cmp(src2, src1));
+        asm_instructions.push(Instruction::Mov(
+            Operand::Imm(0),
+            Operand::Pseudo(Identifier::Name(dst.var()?)),
+        ));
+        asm_instructions.push(Instruction::SetCC(
+            cond_code,
+            Operand::Pseudo(Identifier::Name(dst.var()?)),
+        ));
+        Ok(())
     }
 }

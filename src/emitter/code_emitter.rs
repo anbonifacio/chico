@@ -151,6 +151,11 @@ impl CodeEmitter {
                                 Instruction::Cdq => {
                                     self.output.write_all(b"    cdq\n")?;
                                 }
+                                Instruction::Jmp(identifier) => todo!(),
+                                Instruction::JmpCC(cond_code, identifier) => todo!(),
+                                Instruction::SetCC(cond_code, operand) => todo!(),
+                                Instruction::Label(identifier) => todo!(),
+                                Instruction::Cmp(operand, operand1) => todo!(),
                             }
                         }
                     }

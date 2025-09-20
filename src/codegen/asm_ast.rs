@@ -38,6 +38,7 @@ impl FunctionDefinition {
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub enum Identifier {
+    // TODO: refactor identifiers to use something more efficient than String
     Name(String),
 }
 
@@ -54,10 +55,25 @@ pub enum Instruction {
     Mov(Operand, Operand),
     Unary(UnaryOperator, Operand),
     Binary(BinaryOperator, Operand, Operand),
+    Cmp(Operand, Operand),
     Idiv(Operand),
     Cdq,
+    Jmp(Identifier),
+    JmpCC(CondCode, Identifier),
+    SetCC(CondCode, Operand),
+    Label(Identifier),
     AllocateStack(i32),
     Ret,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum CondCode {
+    E,
+    NE,
+    G,
+    GE,
+    L,
+    LE,
 }
 
 #[derive(Debug, Clone, Copy)]
