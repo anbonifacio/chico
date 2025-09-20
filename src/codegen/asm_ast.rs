@@ -102,26 +102,6 @@ impl Operand {
             Operand::Stack(offset) => Ok(Operand::Stack(*offset)),
         }
     }
-
-    pub fn get_pseudo_identifier(&self) -> std::io::Result<Operand> {
-        match self {
-            Operand::Pseudo(identifier) => Ok(Operand::Pseudo(Identifier::Name(identifier.name()))),
-            _ => Err(std::io::Error::new(
-                std::io::ErrorKind::InvalidInput,
-                "Not a Pseudo Register",
-            )),
-        }
-    }
-
-    pub fn get_imm(&self) -> std::io::Result<Operand> {
-        match self {
-            Operand::Imm(value) => Ok(Operand::Imm(*value)),
-            _ => Err(std::io::Error::new(
-                std::io::ErrorKind::InvalidInput,
-                "Not an immediate value",
-            )),
-        }
-    }
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]

@@ -138,7 +138,7 @@ impl CodeEmitter {
                                     )?,
                                     BinaryOperator::RightShift => self.output.write_all(
                                         format!(
-                                            "    shrl   {}, {}\n",
+                                            "    sarl   {}, {}\n",
                                             match_operand(src),
                                             match_operand(dst)
                                         )
