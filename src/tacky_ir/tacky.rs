@@ -42,23 +42,60 @@ impl<'expr> TackyGenerator<'expr> {
         match expr {
             c_ast::Expr::Unary(operator, inner_expr_ref) => {
                 let src = self.emit_tacky(inner_expr_ref, instructions);
-                let dst_name = self.make_temporary(inner_expr_ref);
+                let dst_name = self.make_label("tmp", inner_expr_ref);
                 let dst = Val::Var(Identifier::Name(dst_name.clone()));
                 let tacky_op = self.convert_unop(operator);
                 instructions.append(Instruction::Unary(tacky_op, src, dst.clone()));
                 dst
             }
-            c_ast::Expr::Binary(
-                c_ast::BinaryOperator::And | c_ast::BinaryOperator::Or,
-                left,
-                right,
-            ) => {
-                todo!()
+            c_ast::Expr::Binary(c_ast::BinaryOperator::And, left, right) => {
+                let dst_name = self.make_label("tmp", left);
+                let false_label = self.make_label("false", left);
+                let end_label = self.make_label("end", left);
+                let dst = Val::Var(Identifier::Name(dst_name.clone()));
+                let v1 = self.emit_tacky(left, instructions);
+                instructions.append(Instruction::JumpIfZero(
+                    v1,
+                    Identifier::Name(false_label.clone()),
+                ));
+                let v2 = self.emit_tacky(right, instructions);
+                instructions.append(Instruction::JumpIfZero(
+                    v2,
+                    Identifier::Name(false_label.clone()),
+                ));
+                instructions.append(Instruction::Copy(dst.clone(), Val::Constant(1)));
+                instructions.append(Instruction::Jump(Identifier::Name(end_label.clone())));
+                instructions.append(Instruction::Label(Identifier::Name(false_label)));
+                instructions.append(Instruction::Copy(dst.clone(), Val::Constant(0)));
+                instructions.append(Instruction::Label(Identifier::Name(end_label)));
+                dst
+            }
+            c_ast::Expr::Binary(c_ast::BinaryOperator::Or, left, right) => {
+                let dst_name = self.make_label("tmp", left);
+                let false_label = self.make_label("false", left);
+                let end_label = self.make_label("end", left);
+                let dst = Val::Var(Identifier::Name(dst_name.clone()));
+                let v1 = self.emit_tacky(left, instructions);
+                instructions.append(Instruction::JumpIfNotZero(
+                    v1,
+                    Identifier::Name(false_label.clone()),
+                ));
+                let v2 = self.emit_tacky(right, instructions);
+                instructions.append(Instruction::JumpIfNotZero(
+                    v2,
+                    Identifier::Name(false_label.clone()),
+                ));
+                instructions.append(Instruction::Copy(dst.clone(), Val::Constant(1)));
+                instructions.append(Instruction::Jump(Identifier::Name(end_label.clone())));
+                instructions.append(Instruction::Label(Identifier::Name(false_label)));
+                instructions.append(Instruction::Copy(dst.clone(), Val::Constant(0)));
+                instructions.append(Instruction::Label(Identifier::Name(end_label)));
+                dst
             }
             c_ast::Expr::Binary(operator, left, right) => {
                 let v1 = self.emit_tacky(left, instructions);
                 let v2 = self.emit_tacky(right, instructions);
-                let dst_name = self.make_temporary(left);
+                let dst_name = self.make_label("tmp", left);
                 let dst = Val::Var(Identifier::Name(dst_name.clone()));
                 let tacky_op = self.convert_binop(operator);
                 instructions.append(Instruction::Binary(tacky_op, v1, v2, dst.clone()));
@@ -68,15 +105,15 @@ impl<'expr> TackyGenerator<'expr> {
         }
     }
 
-    fn make_temporary(&self, expr_ref: &ExprRef) -> String {
-        format!("tmp.{}", expr_ref.id())
+    fn make_label(&self, label: &str, expr_ref: &ExprRef) -> String {
+        format!("{}.{}", label, expr_ref.id())
     }
 
     fn convert_unop(&self, operator: &c_ast::UnaryOperator) -> tacky_ast::UnaryOperator {
         match operator {
             c_ast::UnaryOperator::Negate => tacky_ast::UnaryOperator::Negate,
             c_ast::UnaryOperator::Complement => tacky_ast::UnaryOperator::Complement,
-            c_ast::UnaryOperator::Not => todo!(),
+            c_ast::UnaryOperator::Not => tacky_ast::UnaryOperator::Not,
         }
     }
 
@@ -92,14 +129,14 @@ impl<'expr> TackyGenerator<'expr> {
             c_ast::BinaryOperator::BitwiseXor => BinaryOperator::BitwiseXor,
             c_ast::BinaryOperator::LeftShift => BinaryOperator::LeftShift,
             c_ast::BinaryOperator::RightShift => BinaryOperator::RightShift,
-            c_ast::BinaryOperator::And => todo!(),
-            c_ast::BinaryOperator::Or => todo!(),
-            c_ast::BinaryOperator::Equal => todo!(),
-            c_ast::BinaryOperator::NotEqual => todo!(),
-            c_ast::BinaryOperator::LessThan => todo!(),
-            c_ast::BinaryOperator::LessOrEqual => todo!(),
-            c_ast::BinaryOperator::GreaterThan => todo!(),
-            c_ast::BinaryOperator::GreaterOrEqual => todo!(),
+            c_ast::BinaryOperator::And => BinaryOperator::And,
+            c_ast::BinaryOperator::Or => BinaryOperator::Or,
+            c_ast::BinaryOperator::Equal => BinaryOperator::Equal,
+            c_ast::BinaryOperator::NotEqual => BinaryOperator::NotEqual,
+            c_ast::BinaryOperator::LessThan => BinaryOperator::LessThan,
+            c_ast::BinaryOperator::LessOrEqual => BinaryOperator::LessOrEqual,
+            c_ast::BinaryOperator::GreaterThan => BinaryOperator::GreaterThan,
+            c_ast::BinaryOperator::GreaterOrEqual => BinaryOperator::GreaterOrEqual,
         }
     }
 }

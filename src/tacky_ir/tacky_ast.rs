@@ -112,28 +112,28 @@ pub enum Instruction {
 impl Display for Instruction {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Instruction::Return(val) => write!(f, "Return: {}", val),
-            Instruction::Unary(unary_operator, src, dst) => write!(
+            Instruction::Return(val) => writeln!(f, "Return: {}", val),
+            Instruction::Unary(unary_operator, src, dst) => writeln!(
                 f,
-                "Unary:\n      operator={}\n      src={}\n      dst={}\n",
+                "Unary:\n      operator={}\n      src={}\n      dst={}",
                 unary_operator, src, dst
             ),
-            Instruction::Binary(binary_operator, src1, src2, dst) => write!(
+            Instruction::Binary(binary_operator, src1, src2, dst) => writeln!(
                 f,
-                "Binary:\n      operator={}\n      src1={}\n      src2={}\n      dst={}\n",
+                "Binary:\n      operator={}\n      src1={}\n      src2={}\n      dst={}",
                 binary_operator, src1, src2, dst
             ),
             Instruction::Copy(src, dst) => {
-                write!(f, "Copy:\n      src={}\n      dst={}\n", src, dst)
+                writeln!(f, "Copy:\n      src={}\n      dst={}", src, dst)
             }
-            Instruction::Jump(target) => write!(f, "Jump to: {}", target),
+            Instruction::Jump(target) => writeln!(f, "Jump to: {}", target),
             Instruction::JumpIfZero(condition, target) => {
-                write!(f, "JumpIfZero: if {} == 0 jump to {}", condition, target)
+                writeln!(f, "JumpIfZero: if {} == 0 jump to {}", condition, target)
             }
             Instruction::JumpIfNotZero(condition, target) => {
-                write!(f, "JumpIfNotZero: if {} != 0 jump to {}", condition, target)
+                writeln!(f, "JumpIfNotZero: if {} != 0 jump to {}", condition, target)
             }
-            Instruction::Label(target) => write!(f, "Label: {}", target),
+            Instruction::Label(target) => writeln!(f, "Label: {}", target),
         }
     }
 }
@@ -165,6 +165,14 @@ pub enum BinaryOperator {
     BitwiseXor,
     LeftShift,
     RightShift,
+    And,
+    Or,
+    Equal,
+    NotEqual,
+    LessThan,
+    LessOrEqual,
+    GreaterThan,
+    GreaterOrEqual,
 }
 
 impl Display for BinaryOperator {
@@ -180,20 +188,14 @@ impl Display for BinaryOperator {
             BinaryOperator::BitwiseXor => write!(f, "'^'"),
             BinaryOperator::LeftShift => write!(f, "'<<'"),
             BinaryOperator::RightShift => write!(f, "'>>'"),
-        }
-    }
-}
-
-pub enum ShortCircuitingOperator {
-    And,
-    Or,
-}
-
-impl Display for ShortCircuitingOperator {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ShortCircuitingOperator::And => write!(f, "'&&'"),
-            ShortCircuitingOperator::Or => write!(f, "'||'"),
+            BinaryOperator::And => write!(f, "'&&'"),
+            BinaryOperator::Or => write!(f, "'||'"),
+            BinaryOperator::Equal => write!(f, "'=='"),
+            BinaryOperator::NotEqual => write!(f, "'!='"),
+            BinaryOperator::LessThan => write!(f, "'<'"),
+            BinaryOperator::LessOrEqual => write!(f, "'<='"),
+            BinaryOperator::GreaterThan => write!(f, "'>'"),
+            BinaryOperator::GreaterOrEqual => write!(f, "'>='"),
         }
     }
 }
