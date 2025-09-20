@@ -43,7 +43,10 @@ impl TokenType {
             TokenType::BitwiseAnd => 39,
             TokenType::BitwiseXor => 38,
             TokenType::BitwiseOr => 37,
-            TokenType::GreaterThan | TokenType::GreaterThanEq | TokenType::LessThan | TokenType::LessThanEq => 35,
+            TokenType::GreaterThan
+            | TokenType::GreaterThanEq
+            | TokenType::LessThan
+            | TokenType::LessThanEq => 35,
             TokenType::Equal | TokenType::NotEqual => 30,
             TokenType::And => 10,
             TokenType::Or => 5,

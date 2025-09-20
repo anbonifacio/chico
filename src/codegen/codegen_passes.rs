@@ -88,6 +88,7 @@ impl Codegen {
                 let operator = match operator {
                     tacky_ast::UnaryOperator::Negate => UnaryOperator::Neg,
                     tacky_ast::UnaryOperator::Complement => UnaryOperator::Not,
+                    tacky_ast::UnaryOperator::Not => todo!(),
                 };
                 asm_instructions.push(Instruction::Unary(
                     operator,
@@ -176,6 +177,11 @@ impl Codegen {
                     Operand::Pseudo(Identifier::Name(dst.var()?)),
                 ))
             }
+            tacky_ast::Instruction::Copy(src, dst) => todo!(),
+            tacky_ast::Instruction::Jump(target) => todo!(),
+            tacky_ast::Instruction::JumpIfZero(condition, target) => todo!(),
+            tacky_ast::Instruction::JumpIfNotZero(condition, target) => todo!(),
+            tacky_ast::Instruction::Label(target) => todo!(),
         }
         Ok(())
     }

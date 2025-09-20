@@ -48,6 +48,13 @@ impl<'expr> TackyGenerator<'expr> {
                 instructions.append(Instruction::Unary(tacky_op, src, dst.clone()));
                 dst
             }
+            c_ast::Expr::Binary(
+                c_ast::BinaryOperator::And | c_ast::BinaryOperator::Or,
+                left,
+                right,
+            ) => {
+                todo!()
+            }
             c_ast::Expr::Binary(operator, left, right) => {
                 let v1 = self.emit_tacky(left, instructions);
                 let v2 = self.emit_tacky(right, instructions);

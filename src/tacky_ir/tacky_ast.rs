@@ -102,6 +102,11 @@ pub enum Instruction {
     Return(Val),
     Unary(UnaryOperator, Val, Val),
     Binary(BinaryOperator, Val, Val, Val),
+    Copy(Val, Val),
+    Jump(Identifier),
+    JumpIfZero(Val, Identifier),
+    JumpIfNotZero(Val, Identifier),
+    Label(Identifier),
 }
 
 impl Display for Instruction {
@@ -118,6 +123,17 @@ impl Display for Instruction {
                 "Binary:\n      operator={}\n      src1={}\n      src2={}\n      dst={}\n",
                 binary_operator, src1, src2, dst
             ),
+            Instruction::Copy(src, dst) => {
+                write!(f, "Copy:\n      src={}\n      dst={}\n", src, dst)
+            }
+            Instruction::Jump(target) => write!(f, "Jump to: {}", target),
+            Instruction::JumpIfZero(condition, target) => {
+                write!(f, "JumpIfZero: if {} == 0 jump to {}", condition, target)
+            }
+            Instruction::JumpIfNotZero(condition, target) => {
+                write!(f, "JumpIfNotZero: if {} != 0 jump to {}", condition, target)
+            }
+            Instruction::Label(target) => write!(f, "Label: {}", target),
         }
     }
 }
@@ -125,6 +141,7 @@ impl Display for Instruction {
 pub enum UnaryOperator {
     Complement,
     Negate,
+    Not,
 }
 
 impl Display for UnaryOperator {
@@ -132,6 +149,7 @@ impl Display for UnaryOperator {
         match self {
             UnaryOperator::Complement => write!(f, "'~'"),
             UnaryOperator::Negate => write!(f, "'-'"),
+            UnaryOperator::Not => write!(f, "'!'"),
         }
     }
 }
@@ -162,6 +180,20 @@ impl Display for BinaryOperator {
             BinaryOperator::BitwiseXor => write!(f, "'^'"),
             BinaryOperator::LeftShift => write!(f, "'<<'"),
             BinaryOperator::RightShift => write!(f, "'>>'"),
+        }
+    }
+}
+
+pub enum ShortCircuitingOperator {
+    And,
+    Or,
+}
+
+impl Display for ShortCircuitingOperator {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ShortCircuitingOperator::And => write!(f, "'&&'"),
+            ShortCircuitingOperator::Or => write!(f, "'||'"),
         }
     }
 }
