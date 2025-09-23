@@ -32,6 +32,7 @@ pub enum TokenType {
     GreaterThan,
     LessThanEq,
     GreaterThanEq,
+    Assign,
 }
 
 impl TokenType {

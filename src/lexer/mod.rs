@@ -39,6 +39,7 @@ static LESS_THAN: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"<").unwrap());
 static GREATER_THAN: LazyLock<Regex> = LazyLock::new(|| Regex::new(r">").unwrap());
 static LESS_OR_EQ: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"<=").unwrap());
 static GREATER_OR_EQ: LazyLock<Regex> = LazyLock::new(|| Regex::new(r">=").unwrap());
+static ASSIGN: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"=").unwrap());
 
 static PATTERNS: LazyLock<Vec<(&Regex, TokenType)>> = LazyLock::new(|| {
     vec![
@@ -74,5 +75,6 @@ static PATTERNS: LazyLock<Vec<(&Regex, TokenType)>> = LazyLock::new(|| {
         (&*GREATER_OR_EQ, TokenType::GreaterThanEq),
         (&*LESS_THAN, TokenType::LessThan),
         (&*GREATER_THAN, TokenType::GreaterThan),
+        (&*ASSIGN, TokenType::Assign),
     ]
 });
