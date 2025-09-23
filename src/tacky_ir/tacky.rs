@@ -72,22 +72,22 @@ impl<'expr> TackyGenerator<'expr> {
             }
             c_ast::Expr::Binary(c_ast::BinaryOperator::Or, left, right) => {
                 let dst_name = self.make_temporary(left);
-                let false_label = self.make_label("or_false", left);
+                let true_label = self.make_label("or_true", left);
                 let end_label = self.make_label("or_end", left);
                 let dst = Val::Var(Identifier::Name(dst_name.clone()));
                 let v1 = self.emit_tacky(left, instructions);
                 instructions.append(Instruction::JumpIfNotZero(
                     v1,
-                    Identifier::Name(false_label.clone()),
+                    Identifier::Name(true_label.clone()),
                 ));
                 let v2 = self.emit_tacky(right, instructions);
                 instructions.append(Instruction::JumpIfNotZero(
                     v2,
-                    Identifier::Name(false_label.clone()),
+                    Identifier::Name(true_label.clone()),
                 ));
                 instructions.append(Instruction::Copy(Val::Constant(0), dst.clone()));
                 instructions.append(Instruction::Jump(Identifier::Name(end_label.clone())));
-                instructions.append(Instruction::Label(Identifier::Name(false_label)));
+                instructions.append(Instruction::Label(Identifier::Name(true_label)));
                 instructions.append(Instruction::Copy(Val::Constant(1), dst.clone()));
                 instructions.append(Instruction::Label(Identifier::Name(end_label)));
                 dst
