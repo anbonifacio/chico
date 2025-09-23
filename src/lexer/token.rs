@@ -51,6 +51,7 @@ impl TokenType {
             TokenType::BitwiseOr => 15,
             TokenType::And => 10,
             TokenType::Or => 5,
+            TokenType::Assign => 1,
             _ => 0,
         }
     }
