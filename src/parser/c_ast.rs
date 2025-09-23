@@ -21,7 +21,7 @@ impl Display for CProgram {
 }
 
 pub enum FunctionDefinition {
-    Function(Identifier, Statement),
+    Function(Identifier, Vec<BlockItem>),
 }
 
 impl FunctionDefinition {
@@ -31,7 +31,7 @@ impl FunctionDefinition {
         }
     }
 
-    pub fn body(&self) -> &Statement {
+    pub fn body(&self) -> &[BlockItem] {
         match self {
             FunctionDefinition::Function(_, body) => body,
         }
@@ -43,7 +43,7 @@ impl Display for FunctionDefinition {
         match self {
             FunctionDefinition::Function(name, body) => write!(
                 f,
-                "  Function:\n    name=\"{}\",\n    body={}",
+                "  Function:\n    name=\"{}\",\n    body={:?}",
                 name.name(),
                 body
             ),
@@ -51,6 +51,7 @@ impl Display for FunctionDefinition {
     }
 }
 
+#[derive(Debug)]
 pub enum Identifier {
     Name(String),
 }
@@ -71,16 +72,32 @@ impl Display for Identifier {
     }
 }
 
+#[derive(Debug)]
+pub enum BlockItem {
+    S(Statement),
+    D(Declaration),
+}
+
+#[derive(Debug)]
 pub enum Statement {
     Return(ExprRef),
+    Expression(ExprRef),
+    Null,
 }
 
 impl Display for Statement {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Statement::Return(expr_ref) => write!(f, "Return: {}", expr_ref),
+            Statement::Expression(expr_ref) => write!(f, "Expression: {}", expr_ref),
+            Statement::Null => write!(f, "Null;"),
         }
     }
+}
+
+#[derive(Debug)]
+pub enum Declaration {
+    Declaration(Identifier, Option<ExprRef>),
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -121,8 +138,10 @@ impl ExprPool {
 #[derive(Debug)]
 pub enum Expr {
     Constant(i32),
+    Var(Identifier),
     Unary(UnaryOperator, ExprRef),
     Binary(BinaryOperator, ExprRef, ExprRef),
+    Assignment(ExprRef, ExprRef),
 }
 
 impl Display for Expr {
@@ -131,6 +150,8 @@ impl Display for Expr {
             Expr::Constant(value) => write!(f, "{}", value),
             Expr::Unary(op, expr) => write!(f, "{}({})", op, expr),
             Expr::Binary(op, left, right) => write!(f, "({} {} {})", left, op, right),
+            Expr::Var(identifier) => write!(f, "{}", identifier.name()),
+            Expr::Assignment(lvalue, rvalue) => write!(f, "{} = {}", lvalue, rvalue),
         }
     }
 }

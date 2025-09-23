@@ -1,4 +1,4 @@
-use crate::parser::c_ast;
+use crate::parser::c_ast::{self, BlockItem};
 use crate::parser::c_ast::{CProgram, ExprPool, ExprRef, Statement};
 use crate::tacky_ir::tacky_ast;
 use crate::tacky_ir::tacky_ast::*;
@@ -26,12 +26,19 @@ impl<'expr> TackyGenerator<'expr> {
         FunctionDefinition::Function(Identifier::Name(identifier.to_string()), instructions)
     }
 
-    fn generate_instructions(&self, body: &Statement) -> Instructions {
+    fn generate_instructions(&self, body: &[BlockItem]) -> Instructions {
         let mut instructions = Instructions::new();
-        match body {
-            Statement::Return(expr_ref) => {
-                let expr = self.emit_tacky(expr_ref, &mut instructions);
-                instructions.append(Instruction::Return(expr));
+        while let Some(item) = body.iter().next() {
+            match item {
+                BlockItem::S(statement) => match statement {
+                    Statement::Return(expr_ref) => {
+                        let expr = self.emit_tacky(expr_ref, &mut instructions);
+                        instructions.append(Instruction::Return(expr));
+                    }
+                    Statement::Expression(expr_ref) => todo!(),
+                    Statement::Null => todo!(),
+                },
+                BlockItem::D(declaration) => todo!(),
             }
         }
         instructions
@@ -102,6 +109,8 @@ impl<'expr> TackyGenerator<'expr> {
                 dst
             }
             c_ast::Expr::Constant(c) => Val::Constant(*c),
+            c_ast::Expr::Var(identifier) => todo!(),
+            c_ast::Expr::Assignment(expr_ref, expr_ref1) => todo!(),
         }
     }
 

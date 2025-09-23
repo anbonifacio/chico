@@ -40,9 +40,17 @@ impl<'expr> CParser<'expr> {
         self.expect(TokenType::VoidKeyword, tokens_iter)?;
         self.expect(TokenType::CloseParenthesis, tokens_iter)?;
         self.expect(TokenType::OpenBrace, tokens_iter)?;
-        let body = self.parse_statement(tokens_iter)?;
+        let mut function_body = vec![];
+        while let Some(next_token) = tokens_iter.peek() {
+            if let TokenType::CloseBrace = next_token.token_type {
+                break;
+            } else {
+                let next_block_item = self.parse_block_item(tokens_iter)?;
+                function_body.push(next_block_item);
+            }
+        }
         self.expect(TokenType::CloseBrace, tokens_iter)?;
-        Ok(Function(identifier, body))
+        Ok(Function(identifier, function_body))
     }
 
     fn parse_identifier(
@@ -254,5 +262,12 @@ impl<'expr> CParser<'expr> {
                 "Unexpected end of input",
             )),
         }
+    }
+
+    fn parse_block_item(
+        &self,
+        tokens_iter: &mut Peekable<Iter<'expr, Token>>,
+    ) -> std::io::Result<BlockItem> {
+        todo!()
     }
 }
