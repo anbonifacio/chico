@@ -7,6 +7,18 @@ use std::{
 
 use crate::codegen::asm_ast::*;
 
+const LABEL_PREFIX: &'static str = get_label_prefix();
+const fn get_label_prefix() -> &'static str {
+    #[cfg(target_os = "macos")]
+    {
+        "L"
+    }
+    #[cfg(target_os = "linux")]
+    {
+        ".L"
+    }
+}
+
 pub struct CodeEmitter {
     output: BufWriter<File>,
 }
@@ -47,7 +59,7 @@ impl CodeEmitter {
                                     let src = match_operand(src);
                                     let dst = match_operand(dst);
                                     self.output.write_all(
-                                        format!("    movl   {}, {}\n", src, dst).as_bytes(),
+                                        format!("    movl    {}, {}\n", src, dst).as_bytes(),
                                     )?;
                                 }
                                 Instruction::Unary(unary_operator, operand) => match unary_operator
@@ -55,19 +67,19 @@ impl CodeEmitter {
                                     UnaryOperator::Neg => {
                                         let operand = match_operand(operand);
                                         self.output.write_all(
-                                            format!("    negl   {}\n", operand).as_bytes(),
+                                            format!("    negl    {}\n", operand).as_bytes(),
                                         )?;
                                     }
                                     UnaryOperator::Not => {
                                         let operand = match_operand(operand);
                                         self.output.write_all(
-                                            format!("    notl   {}\n", operand).as_bytes(),
+                                            format!("    notl    {}\n", operand).as_bytes(),
                                         )?;
                                     }
                                 },
                                 Instruction::AllocateStack(int) => {
                                     self.output.write_all(
-                                        format!("    subq   ${}, %rsp\n", int).as_bytes(),
+                                        format!("    subq    ${}, %rsp\n", int).as_bytes(),
                                     )?;
                                 }
                                 Instruction::Ret => {
@@ -77,7 +89,7 @@ impl CodeEmitter {
                                     BinaryOperator::Add => {
                                         self.output.write_all(
                                             format!(
-                                                "    addl   {}, {}\n",
+                                                "    addl    {}, {}\n",
                                                 match_operand(src),
                                                 match_operand(dst)
                                             )
@@ -87,7 +99,7 @@ impl CodeEmitter {
                                     BinaryOperator::Sub => {
                                         self.output.write_all(
                                             format!(
-                                                "    subl   {}, {}\n",
+                                                "    subl    {}, {}\n",
                                                 match_operand(src),
                                                 match_operand(dst)
                                             )
@@ -97,7 +109,7 @@ impl CodeEmitter {
                                     BinaryOperator::Mult => {
                                         self.output.write_all(
                                             format!(
-                                                "    imull  {}, {}\n",
+                                                "    imull   {}, {}\n",
                                                 match_operand(src),
                                                 match_operand(dst)
                                             )
@@ -106,7 +118,7 @@ impl CodeEmitter {
                                     }
                                     BinaryOperator::BitwiseAnd => self.output.write_all(
                                         format!(
-                                            "    andl   {}, {}\n",
+                                            "    andl    {}, {}\n",
                                             match_operand(src),
                                             match_operand(dst)
                                         )
@@ -114,7 +126,7 @@ impl CodeEmitter {
                                     )?,
                                     BinaryOperator::BitwiseOr => self.output.write_all(
                                         format!(
-                                            "    orl    {}, {}\n",
+                                            "    orl     {}, {}\n",
                                             match_operand(src),
                                             match_operand(dst)
                                         )
@@ -122,7 +134,7 @@ impl CodeEmitter {
                                     )?,
                                     BinaryOperator::BitwiseXor => self.output.write_all(
                                         format!(
-                                            "    xorl   {}, {}\n",
+                                            "    xorl    {}, {}\n",
                                             match_operand(src),
                                             match_operand(dst)
                                         )
@@ -130,7 +142,7 @@ impl CodeEmitter {
                                     )?,
                                     BinaryOperator::LeftShift => self.output.write_all(
                                         format!(
-                                            "    shll   {}, {}\n",
+                                            "    shll    {}, {}\n",
                                             match_operand(src),
                                             match_operand(dst)
                                         )
@@ -138,7 +150,7 @@ impl CodeEmitter {
                                     )?,
                                     BinaryOperator::RightShift => self.output.write_all(
                                         format!(
-                                            "    sarl   {}, {}\n",
+                                            "    sarl    {}, {}\n",
                                             match_operand(src),
                                             match_operand(dst)
                                         )
@@ -146,11 +158,41 @@ impl CodeEmitter {
                                     )?,
                                 },
                                 Instruction::Idiv(operand) => self.output.write_all(
-                                    format!("    idivl  {}\n", match_operand(operand)).as_bytes(),
+                                    format!("    idivl   {}\n", match_operand(operand)).as_bytes(),
                                 )?,
                                 Instruction::Cdq => {
                                     self.output.write_all(b"    cdq\n")?;
                                 }
+                                Instruction::Jmp(identifier) => self.output.write_all(
+                                    format!("    jmp     {}{}\n", LABEL_PREFIX, identifier.name())
+                                        .as_bytes(),
+                                )?,
+                                Instruction::JmpCC(cond_code, identifier) => {
+                                    self.output.write_all(
+                                        format!(
+                                            "    j{}     {}{}\n",
+                                            cond_code,
+                                            LABEL_PREFIX,
+                                            identifier.name()
+                                        )
+                                        .as_bytes(),
+                                    )?
+                                }
+                                Instruction::SetCC(cond_code, op) => self.output.write_all(
+                                    format!("    set{}    {}\n", cond_code, match_operand(op))
+                                        .as_bytes(),
+                                )?,
+                                Instruction::Label(identifier) => self.output.write_all(
+                                    format!("{}{}:\n", LABEL_PREFIX, identifier.name()).as_bytes(),
+                                )?,
+                                Instruction::Cmp(op2, op1) => self.output.write_all(
+                                    format!(
+                                        "    cmpl    {}, {}\n",
+                                        match_operand(op2),
+                                        match_operand(op1)
+                                    )
+                                    .as_bytes(),
+                                )?,
                             }
                         }
                     }

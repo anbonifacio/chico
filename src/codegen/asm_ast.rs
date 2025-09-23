@@ -38,6 +38,7 @@ impl FunctionDefinition {
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub enum Identifier {
+    // TODO: refactor identifiers to use something more efficient than String
     Name(String),
 }
 
@@ -54,10 +55,38 @@ pub enum Instruction {
     Mov(Operand, Operand),
     Unary(UnaryOperator, Operand),
     Binary(BinaryOperator, Operand, Operand),
+    Cmp(Operand, Operand),
     Idiv(Operand),
     Cdq,
+    Jmp(Identifier),
+    JmpCC(CondCode, Identifier),
+    SetCC(CondCode, Operand),
+    Label(Identifier),
     AllocateStack(i32),
     Ret,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum CondCode {
+    E,
+    NE,
+    G,
+    GE,
+    L,
+    LE,
+}
+
+impl Display for CondCode {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            CondCode::E => write!(f, "e"),
+            CondCode::NE => write!(f, "ne"),
+            CondCode::G => write!(f, "g"),
+            CondCode::GE => write!(f, "ge"),
+            CondCode::L => write!(f, "l"),
+            CondCode::LE => write!(f, "le"),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -91,12 +120,11 @@ impl Operand {
         match self {
             Operand::Imm(value) => Ok(Operand::Imm(*value)),
             Operand::Reg(reg) => match reg {
-                RegisterType::AX => Ok(Operand::Reg(RegisterType::AX)),
-                RegisterType::DX => Ok(Operand::Reg(RegisterType::DX)),
-                RegisterType::R10 => Ok(Operand::Reg(RegisterType::R10)),
-                RegisterType::R11 => Ok(Operand::Reg(RegisterType::R11)),
-                RegisterType::CX => Ok(Operand::Reg(RegisterType::CX)),
-                RegisterType::CL => Ok(Operand::Reg(RegisterType::CL)),
+                RegisterType::AX(size) => Ok(Operand::Reg(RegisterType::AX(*size))),
+                RegisterType::DX(size) => Ok(Operand::Reg(RegisterType::DX(*size))),
+                RegisterType::R10(size) => Ok(Operand::Reg(RegisterType::R10(*size))),
+                RegisterType::R11(size) => Ok(Operand::Reg(RegisterType::R11(*size))),
+                RegisterType::CX(size) => Ok(Operand::Reg(RegisterType::CX(*size))),
             },
             Operand::Pseudo(identifier) => Ok(Operand::Pseudo(Identifier::Name(identifier.name()))),
             Operand::Stack(offset) => Ok(Operand::Stack(*offset)),
@@ -106,23 +134,32 @@ impl Operand {
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum RegisterType {
-    AX,
-    DX,
-    R10,
-    R11,
-    CX,
-    CL,
+    AX(RegisterSize),
+    DX(RegisterSize),
+    R10(RegisterSize),
+    R11(RegisterSize),
+    CX(RegisterSize),
+}
+
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
+pub enum RegisterSize {
+    OneByte,
+    FourBytes,
 }
 
 impl Display for RegisterType {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            RegisterType::AX => write!(f, "eax"),
-            RegisterType::DX => write!(f, "edx"),
-            RegisterType::R10 => write!(f, "r10d"),
-            RegisterType::R11 => write!(f, "r11d"),
-            RegisterType::CX => write!(f, "ecx"),
-            RegisterType::CL => write!(f, "cl"),
+            RegisterType::AX(RegisterSize::FourBytes) => write!(f, "eax"),
+            RegisterType::AX(RegisterSize::OneByte) => write!(f, "al"),
+            RegisterType::DX(RegisterSize::FourBytes) => write!(f, "edx"),
+            RegisterType::DX(RegisterSize::OneByte) => write!(f, "dl"),
+            RegisterType::R10(RegisterSize::FourBytes) => write!(f, "r10d"),
+            RegisterType::R10(RegisterSize::OneByte) => write!(f, "r10b"),
+            RegisterType::R11(RegisterSize::FourBytes) => write!(f, "r11d"),
+            RegisterType::R11(RegisterSize::OneByte) => write!(f, "r11b"),
+            RegisterType::CX(RegisterSize::FourBytes) => write!(f, "ecx"),
+            RegisterType::CX(RegisterSize::OneByte) => write!(f, "cl"),
         }
     }
 }
