@@ -82,10 +82,43 @@ impl<'expr> CParser<'expr> {
         &mut self,
         tokens_iter: &mut Peekable<Iter<'expr, Token>>,
     ) -> std::io::Result<Statement> {
-        self.expect(TokenType::ReturnKeyword, tokens_iter)?;
-        let expression = self.parse_expression(tokens_iter, 0)?;
-        self.expect(TokenType::Semicolon, tokens_iter)?;
-        Ok(Statement::Return(expression))
+        let statement = if let Some(next_token) = tokens_iter.peek() {
+            match next_token.token_type {
+                TokenType::ReturnKeyword => {
+                    self.expect(TokenType::ReturnKeyword, tokens_iter)?;
+                    let expression = self.parse_expression(tokens_iter, 0)?;
+                    //self.expect(TokenType::Semicolon, tokens_iter)?;
+                    Statement::Return(expression)
+                }
+                TokenType::Semicolon => {
+                    self.expect(TokenType::Semicolon, tokens_iter)?;
+                    Statement::Null
+                }
+                TokenType::Identifier => {
+                    //self.extract_token(tokens_iter)?;
+                    let expression = self.parse_expression(tokens_iter, 0)?;
+                    Statement::Expression(expression)
+                }
+                TokenType::Assign => {
+                    self.expect(TokenType::Assign, tokens_iter)?;
+                    let expression = self.parse_expression(tokens_iter, 0)?;
+                    Statement::Expression(expression)
+                }
+                _ => {
+                    return Err(std::io::Error::new(
+                        std::io::ErrorKind::InvalidData,
+                        format!("Malformed statement, found: {:?}", next_token.token_type),
+                    ));
+                }
+            }
+        } else {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::UnexpectedEof,
+                "Unexpected end of input",
+            ));
+        };
+
+        Ok(statement)
     }
 
     fn parse_factor(
@@ -123,6 +156,15 @@ impl<'expr> CParser<'expr> {
                     );
                     Ok(expr_ref)
                 }
+                TokenType::Identifier => {
+                    let var = self.parse_identifier(tokens_iter)?;
+                    let expr_ref = self.expr_pool.add_expr(Expr::Var(var));
+                    log::debug!(
+                        "Parsed Var expression: {}",
+                        self.expr_pool.get_expr(expr_ref)
+                    );
+                    Ok(expr_ref)
+                }
                 _ => Err(std::io::Error::new(
                     std::io::ErrorKind::InvalidData,
                     format!("Malformed factor, found: {:?}", next_token.token_type),
@@ -150,11 +192,19 @@ impl<'expr> CParser<'expr> {
             loop {
                 let next_prec = next_token.token_type.precedence();
                 if next_token.token_type.is_binop() && next_prec >= min_prec {
-                    let operator = self.parse_binop(tokens_iter)?;
-                    log::debug!("Parsed binary operator: {:?}", operator);
-                    let right = self.parse_expression(tokens_iter, next_prec + 1)?;
-                    log::debug!("Parsed right factor: {}", self.expr_pool.get_expr(right));
-                    left = self.expr_pool.add_expr(Expr::Binary(operator, left, right));
+                    if next_token.token_type == TokenType::Assign {
+                        // Assignment is right associative
+                        self.expect(TokenType::Assign, tokens_iter)?;
+                        let right = self.parse_expression(tokens_iter, next_prec)?;
+                        log::debug!("Parsed right factor: {}", self.expr_pool.get_expr(right));
+                        left = self.expr_pool.add_expr(Expr::Assignment(left, right));
+                    } else {
+                        let operator = self.parse_binop(tokens_iter)?;
+                        log::debug!("Parsed binary operator: {:?}", operator);
+                        let right = self.parse_expression(tokens_iter, next_prec + 1)?;
+                        log::debug!("Parsed right factor: {}", self.expr_pool.get_expr(right));
+                        left = self.expr_pool.add_expr(Expr::Binary(operator, left, right));
+                    }
                     next_token = if let Some(next_token) = tokens_iter.peek() {
                         log::debug!("Next token: {:?}", next_token);
                         next_token
@@ -265,9 +315,48 @@ impl<'expr> CParser<'expr> {
     }
 
     fn parse_block_item(
-        &self,
+        &mut self,
         tokens_iter: &mut Peekable<Iter<'expr, Token>>,
     ) -> std::io::Result<BlockItem> {
-        todo!()
+        if let Some(next_token) = tokens_iter.peek() {
+            match next_token.token_type {
+                TokenType::IntKeyword => {
+                    // This is a Declaration
+                    let declaration = self.parse_declaration(tokens_iter)?;
+                    Ok(BlockItem::D(declaration))
+                }
+                _ => {
+                    // This is a Statement
+                    let statement = self.parse_statement(tokens_iter)?;
+                    Ok(BlockItem::S(statement))
+                }
+            }
+        } else {
+            Err(std::io::Error::new(
+                std::io::ErrorKind::UnexpectedEof,
+                "Unexpected end of input",
+            ))
+        }
+    }
+
+    fn parse_declaration(
+        &mut self,
+        tokens_iter: &mut Peekable<Iter<'expr, Token>>,
+    ) -> std::io::Result<Declaration> {
+        self.expect(TokenType::IntKeyword, tokens_iter)?;
+        let identifier = self.parse_identifier(tokens_iter)?;
+        let expr = match tokens_iter.peek() {
+            Some(next_token) => match next_token.token_type {
+                TokenType::Assign => {
+                    self.expect(TokenType::Assign, tokens_iter)?;
+                    let expr = self.parse_expression(tokens_iter, 0)?;
+                    Some(expr)
+                }
+                _ => None,
+            },
+            None => None,
+        };
+        //self.expect(TokenType::Semicolon, tokens_iter)?;
+        Ok(Declaration::Declaration(identifier, expr))
     }
 }
