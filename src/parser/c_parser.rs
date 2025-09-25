@@ -87,15 +87,10 @@ impl<'expr> CParser<'expr> {
                 TokenType::ReturnKeyword => {
                     self.expect(TokenType::ReturnKeyword, tokens_iter)?;
                     let expression = self.parse_expression(tokens_iter, 0)?;
-                    //self.expect(TokenType::Semicolon, tokens_iter)?;
                     Statement::Return(expression)
                 }
-                TokenType::Semicolon => {
-                    self.expect(TokenType::Semicolon, tokens_iter)?;
-                    Statement::Null
-                }
+                TokenType::Semicolon => Statement::Null,
                 TokenType::Identifier => {
-                    //self.extract_token(tokens_iter)?;
                     let expression = self.parse_expression(tokens_iter, 0)?;
                     Statement::Expression(expression)
                 }
@@ -118,6 +113,7 @@ impl<'expr> CParser<'expr> {
             ));
         };
 
+        self.expect(TokenType::Semicolon, tokens_iter)?;
         Ok(statement)
     }
 
