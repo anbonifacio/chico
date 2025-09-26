@@ -88,13 +88,11 @@ impl<'expr> CParser<'expr> {
                 TokenType::ReturnKeyword => {
                     self.expect(TokenType::ReturnKeyword, tokens_iter)?;
                     let expression = self.parse_expression(tokens_iter, 0)?;
-                    self.expect(TokenType::Semicolon, tokens_iter)?;
                     Statement::Return(expression)
                 }
                 TokenType::Assign => {
                     self.expect(TokenType::Assign, tokens_iter)?;
                     let expression = self.parse_expression(tokens_iter, 0)?;
-                    self.expect(TokenType::Semicolon, tokens_iter)?;
                     Statement::Expression(expression)
                 }
                 TokenType::Constant
@@ -104,13 +102,9 @@ impl<'expr> CParser<'expr> {
                 | TokenType::Hyphen
                 | TokenType::Not => {
                     let expression = self.parse_expression(tokens_iter, 0)?;
-                    self.expect(TokenType::Semicolon, tokens_iter)?;
                     Statement::Expression(expression)
                 }
-                TokenType::Semicolon => {
-                    self.expect(TokenType::Semicolon, tokens_iter)?;
-                    Statement::Null
-                }
+                TokenType::Semicolon => Statement::Null,
                 _ => {
                     return Err(std::io::Error::new(
                         std::io::ErrorKind::InvalidData,
@@ -124,6 +118,7 @@ impl<'expr> CParser<'expr> {
                 "Unexpected end of input",
             ));
         };
+        self.expect(TokenType::Semicolon, tokens_iter)?;
         Ok(statement)
     }
 
