@@ -83,21 +83,33 @@ impl<'expr> CParser<'expr> {
         tokens_iter: &mut Peekable<Iter<'expr, Token>>,
     ) -> std::io::Result<Statement> {
         let statement = if let Some(next_token) = tokens_iter.peek() {
+            log::debug!("Parsing statement starting with {:?}", next_token);
             match next_token.token_type {
                 TokenType::ReturnKeyword => {
                     self.expect(TokenType::ReturnKeyword, tokens_iter)?;
                     let expression = self.parse_expression(tokens_iter, 0)?;
+                    self.expect(TokenType::Semicolon, tokens_iter)?;
                     Statement::Return(expression)
-                }
-                TokenType::Semicolon => Statement::Null,
-                TokenType::Identifier => {
-                    let expression = self.parse_expression(tokens_iter, 0)?;
-                    Statement::Expression(expression)
                 }
                 TokenType::Assign => {
                     self.expect(TokenType::Assign, tokens_iter)?;
                     let expression = self.parse_expression(tokens_iter, 0)?;
+                    self.expect(TokenType::Semicolon, tokens_iter)?;
                     Statement::Expression(expression)
+                }
+                TokenType::Constant
+                | TokenType::Identifier
+                | TokenType::OpenParenthesis
+                | TokenType::Tilde
+                | TokenType::Hyphen
+                | TokenType::Not => {
+                    let expression = self.parse_expression(tokens_iter, 0)?;
+                    self.expect(TokenType::Semicolon, tokens_iter)?;
+                    Statement::Expression(expression)
+                }
+                TokenType::Semicolon => {
+                    self.expect(TokenType::Semicolon, tokens_iter)?;
+                    Statement::Null
                 }
                 _ => {
                     return Err(std::io::Error::new(
@@ -112,8 +124,6 @@ impl<'expr> CParser<'expr> {
                 "Unexpected end of input",
             ));
         };
-
-        self.expect(TokenType::Semicolon, tokens_iter)?;
         Ok(statement)
     }
 
@@ -122,6 +132,7 @@ impl<'expr> CParser<'expr> {
         tokens_iter: &mut Peekable<Iter<'expr, Token>>,
     ) -> std::io::Result<ExprRef> {
         if let Some(next_token) = tokens_iter.peek() {
+            log::debug!("Parsing factor starting with {:?}", next_token);
             match next_token.token_type {
                 TokenType::Constant => {
                     let token = self.extract_token(tokens_iter)?;
@@ -318,11 +329,13 @@ impl<'expr> CParser<'expr> {
             match next_token.token_type {
                 TokenType::IntKeyword => {
                     // This is a Declaration
+                    log::debug!("Parsing declaration in block item...");
                     let declaration = self.parse_declaration(tokens_iter)?;
                     Ok(BlockItem::D(declaration))
                 }
                 _ => {
                     // This is a Statement
+                    log::debug!("Parsing statement in block item...");
                     let statement = self.parse_statement(tokens_iter)?;
                     Ok(BlockItem::S(statement))
                 }
@@ -352,7 +365,7 @@ impl<'expr> CParser<'expr> {
             },
             None => None,
         };
-        //self.expect(TokenType::Semicolon, tokens_iter)?;
+        self.expect(TokenType::Semicolon, tokens_iter)?;
         Ok(Declaration::Declaration(identifier, expr))
     }
 }

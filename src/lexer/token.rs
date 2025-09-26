@@ -77,6 +77,19 @@ impl TokenType {
                 | TokenType::LessThanEq
                 | TokenType::GreaterThanEq
                 | TokenType::Equal
+                | TokenType::Assign
+        )
+    }
+
+    pub fn is_exp(&self) -> bool {
+        matches!(
+            self,
+            TokenType::Constant
+                | TokenType::Identifier
+                | TokenType::OpenParenthesis
+                | TokenType::Tilde
+                | TokenType::Hyphen
+                | TokenType::Not
         )
     }
 }
