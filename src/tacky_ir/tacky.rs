@@ -21,24 +21,32 @@ impl<'expr> TackyGenerator<'expr> {
     pub fn generate_function_ir(&self, ast: &CProgram) -> FunctionDefinition {
         let identifier = ast.fn_def().identifier().name();
         let body = ast.fn_def().body();
-        let instructions = self.generate_instructions(body);
+        let mut instructions = self.generate_instructions(body);
+        instructions.append(Instruction::Return(Val::Constant(0)));
 
         FunctionDefinition::Function(Identifier::Name(identifier.to_string()), instructions)
     }
 
     fn generate_instructions(&self, body: &[BlockItem]) -> Instructions {
+        log::debug!("Generating instructions for body: {:?}", body);
         let mut instructions = Instructions::new();
-        while let Some(item) = body.iter().next() {
+        for item in body.iter() {
             match item {
                 BlockItem::S(statement) => match statement {
                     Statement::Return(expr_ref) => {
                         let expr = self.emit_tacky(expr_ref, &mut instructions);
                         instructions.append(Instruction::Return(expr));
                     }
-                    Statement::Expression(expr_ref) => todo!(),
-                    Statement::Null => todo!(),
+                    Statement::Expression(expr_ref) => {
+                        self.emit_tacky(expr_ref, &mut instructions);
+                    }
+                    Statement::Null => {}
                 },
-                BlockItem::D(declaration) => todo!(),
+                BlockItem::D(declaration) => {
+                    if let Some(init) = declaration.initializer() {
+                        self.emit_tacky(&init, &mut instructions);
+                    }
+                }
             }
         }
         instructions
@@ -109,8 +117,14 @@ impl<'expr> TackyGenerator<'expr> {
                 dst
             }
             c_ast::Expr::Constant(c) => Val::Constant(*c),
-            c_ast::Expr::Var(identifier) => todo!(),
-            c_ast::Expr::Assignment(expr_ref, expr_ref1) => todo!(),
+            c_ast::Expr::Var(v) => Val::Var(Identifier::Name(v.name().to_string())),
+            c_ast::Expr::Assignment(var_ref, rhs) => {
+                let expr = self.expr_pool.get_expr(*var_ref);
+                let var = Val::Var(Identifier::Name(expr.var()));
+                let result = self.emit_tacky(rhs, instructions);
+                instructions.append(Instruction::Copy(result, var.clone()));
+                var
+            }
         }
     }
 

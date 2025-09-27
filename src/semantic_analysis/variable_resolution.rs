@@ -23,9 +23,10 @@ impl<'expr> VariableResolver<'expr> {
     ) -> std::io::Result<Declaration> {
         let name = declaration.name();
         if self.variable_map.contains_key(name) {
-            Err(std::io::Error::other(
-                format!("Duplicate variable declaration: {}", name),
-            ))
+            Err(std::io::Error::other(format!(
+                "Duplicate variable declaration: {}",
+                name
+            )))
         } else {
             let init = declaration.initializer();
             let unique_name = self.make_temporary(name);
@@ -71,18 +72,17 @@ impl<'expr> VariableResolver<'expr> {
                     let new_expr_ref = self.expr_pool.add_expr(new_expr);
                     Ok(new_expr_ref)
                 } else {
-                    Err(std::io::Error::other(
-                        format!("Undeclared variable: {}", var_name),
-                    ))
+                    Err(std::io::Error::other(format!(
+                        "Undeclared variable: {}",
+                        var_name
+                    )))
                 }
             }
             crate::parser::c_ast::Expr::Assignment(left_ref, right_ref) => {
                 // Clone left expression out of the pool
                 let left = self.expr_pool.get_expr(left_ref).clone();
                 if !left.is_lvalue() {
-                    return Err(std::io::Error::other(
-                        format!("Invalid lvalue: {}", left),
-                    ));
+                    return Err(std::io::Error::other(format!("Invalid lvalue: {}", left)));
                 }
                 let new_left = self.resolve_exp(&left_ref)?;
                 let new_right = self.resolve_exp(&right_ref)?;

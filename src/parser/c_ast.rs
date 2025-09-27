@@ -162,6 +162,13 @@ impl Expr {
     pub fn is_lvalue(&self) -> bool {
         matches!(self, Expr::Var(_))
     }
+
+    pub fn var(&self) -> String {
+        match self {
+            Expr::Var(identifier) => identifier.name().to_string(),
+            _ => panic!("Not a variable"),
+        }
+    }
 }
 
 impl Display for Expr {
