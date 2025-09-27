@@ -51,7 +51,7 @@ impl Display for FunctionDefinition {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Identifier {
     Name(String),
 }
@@ -100,6 +100,20 @@ pub enum Declaration {
     Declaration(Identifier, Option<ExprRef>),
 }
 
+impl Declaration {
+    pub fn name(&self) -> &str {
+        match self {
+            Declaration::Declaration(identifier, _) => identifier.name(),
+        }
+    }
+
+    pub fn initializer(&self) -> Option<ExprRef> {
+        match self {
+            Declaration::Declaration(_, init) => *init,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct ExprRef(u32);
 
@@ -135,13 +149,19 @@ impl ExprPool {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Expr {
     Constant(i32),
     Var(Identifier),
     Unary(UnaryOperator, ExprRef),
     Binary(BinaryOperator, ExprRef, ExprRef),
     Assignment(ExprRef, ExprRef),
+}
+
+impl Expr {
+    pub fn is_lvalue(&self) -> bool {
+        matches!(self, Expr::Var(_))
+    }
 }
 
 impl Display for Expr {
@@ -156,7 +176,7 @@ impl Display for Expr {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum UnaryOperator {
     Complement,
     Negate,
@@ -173,7 +193,7 @@ impl Display for UnaryOperator {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum BinaryOperator {
     Add,
     Subtract,
