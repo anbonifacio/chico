@@ -138,14 +138,18 @@ impl ExprPool {
         ExprPool(Vec::new())
     }
 
+    pub fn get_expr(&self, id: ExprRef) -> &Expr {
+        &self.0[id.0 as usize]
+    }
+
     pub fn add_expr(&mut self, expr: Expr) -> ExprRef {
         let id = self.0.len() as u32;
         self.0.push(expr);
         ExprRef(id)
     }
 
-    pub fn get_expr(&self, id: ExprRef) -> &Expr {
-        &self.0[id.0 as usize]
+    pub fn update_expr(&mut self, id: &ExprRef, expr: Expr) {
+        self.0[id.0 as usize] = expr;
     }
 }
 

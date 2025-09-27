@@ -69,8 +69,8 @@ impl<'expr> VariableResolver<'expr> {
                 if let Some(resolved_name) = self.variable_map.get(&var_name) {
                     let new_expr =
                         crate::parser::c_ast::Expr::Var(Identifier::Name(resolved_name.clone()));
-                    let new_expr_ref = self.expr_pool.add_expr(new_expr);
-                    Ok(new_expr_ref)
+                    self.expr_pool.update_expr(initializer_ref, new_expr);
+                    Ok(*initializer_ref)
                 } else {
                     Err(std::io::Error::other(format!(
                         "Undeclared variable: {}",
@@ -87,27 +87,27 @@ impl<'expr> VariableResolver<'expr> {
                 let new_left = self.resolve_exp(&left_ref)?;
                 let new_right = self.resolve_exp(&right_ref)?;
                 let new_expr = crate::parser::c_ast::Expr::Assignment(new_left, new_right);
-                let new_expr_ref = self.expr_pool.add_expr(new_expr);
-                Ok(new_expr_ref)
+                self.expr_pool.update_expr(initializer_ref, new_expr);
+                Ok(*initializer_ref)
             }
             crate::parser::c_ast::Expr::Constant(c) => {
                 let new_expr = crate::parser::c_ast::Expr::Constant(c);
-                let new_expr_ref = self.expr_pool.add_expr(new_expr);
-                Ok(new_expr_ref)
+                self.expr_pool.update_expr(initializer_ref, new_expr);
+                Ok(*initializer_ref)
             }
             crate::parser::c_ast::Expr::Unary(unary_operator, expr_ref) => {
                 let new_inner = self.resolve_exp(&expr_ref)?;
                 let new_expr = crate::parser::c_ast::Expr::Unary(unary_operator, new_inner);
-                let new_expr_ref = self.expr_pool.add_expr(new_expr);
-                Ok(new_expr_ref)
+                self.expr_pool.update_expr(initializer_ref, new_expr);
+                Ok(*initializer_ref)
             }
             crate::parser::c_ast::Expr::Binary(binary_operator, left_ref, right_ref) => {
                 let new_left = self.resolve_exp(&left_ref)?;
                 let new_right = self.resolve_exp(&right_ref)?;
                 let new_expr =
                     crate::parser::c_ast::Expr::Binary(binary_operator, new_left, new_right);
-                let new_expr_ref = self.expr_pool.add_expr(new_expr);
-                Ok(new_expr_ref)
+                self.expr_pool.update_expr(initializer_ref, new_expr);
+                Ok(*initializer_ref)
             }
         }
     }

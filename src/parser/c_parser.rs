@@ -196,6 +196,7 @@ impl<'expr> CParser<'expr> {
                 if next_token.token_type.is_binop() && next_prec >= min_prec {
                     if next_token.token_type == TokenType::Assign {
                         // Assignment is right associative
+                        log::debug!("Parsing assignment operator");
                         self.expect(TokenType::Assign, tokens_iter)?;
                         let right = self.parse_expression(tokens_iter, next_prec)?;
                         log::debug!("Parsed right factor: {}", self.expr_pool.get_expr(right));
