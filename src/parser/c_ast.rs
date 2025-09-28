@@ -21,7 +21,7 @@ impl Display for CProgram {
 }
 
 pub enum FunctionDefinition {
-    Function(Identifier, Statement),
+    Function(Identifier, Vec<BlockItem>),
 }
 
 impl FunctionDefinition {
@@ -31,7 +31,7 @@ impl FunctionDefinition {
         }
     }
 
-    pub fn body(&self) -> &Statement {
+    pub fn body(&self) -> &[BlockItem] {
         match self {
             FunctionDefinition::Function(_, body) => body,
         }
@@ -43,7 +43,7 @@ impl Display for FunctionDefinition {
         match self {
             FunctionDefinition::Function(name, body) => write!(
                 f,
-                "  Function:\n    name=\"{}\",\n    body={}",
+                "  Function:\n    name=\"{}\",\n    body={:?}",
                 name.name(),
                 body
             ),
@@ -51,6 +51,7 @@ impl Display for FunctionDefinition {
     }
 }
 
+#[derive(Debug, Clone)]
 pub enum Identifier {
     Name(String),
 }
@@ -71,14 +72,57 @@ impl Display for Identifier {
     }
 }
 
+#[derive(Debug)]
+pub enum BlockItem {
+    S(Statement),
+    D(Declaration),
+}
+
+#[derive(Debug)]
 pub enum Statement {
     Return(ExprRef),
+    Expression(ExprRef),
+    Null,
 }
 
 impl Display for Statement {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Statement::Return(expr_ref) => write!(f, "Return: {}", expr_ref),
+            Statement::Expression(expr_ref) => write!(f, "Expression: {}", expr_ref),
+            Statement::Null => write!(f, "Null;"),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum Declaration {
+    Declaration(Identifier, Option<ExprRef>),
+}
+
+impl Display for Declaration {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Declaration::Declaration(identifier, Some(init)) => {
+                write!(f, "Declaration: {} = {}", identifier.name(), init)
+            }
+            Declaration::Declaration(identifier, None) => {
+                write!(f, "Declaration: {}", identifier.name())
+            }
+        }
+    }
+}
+
+impl Declaration {
+    pub fn name(&self) -> &str {
+        match self {
+            Declaration::Declaration(identifier, _) => identifier.name(),
+        }
+    }
+
+    pub fn initializer(&self) -> Option<ExprRef> {
+        match self {
+            Declaration::Declaration(_, init) => *init,
         }
     }
 }
@@ -107,22 +151,41 @@ impl ExprPool {
         ExprPool(Vec::new())
     }
 
+    pub fn get_expr(&self, id: ExprRef) -> &Expr {
+        &self.0[id.0 as usize]
+    }
+
     pub fn add_expr(&mut self, expr: Expr) -> ExprRef {
         let id = self.0.len() as u32;
         self.0.push(expr);
         ExprRef(id)
     }
 
-    pub fn get_expr(&self, id: ExprRef) -> &Expr {
-        &self.0[id.0 as usize]
+    pub fn update_expr(&mut self, id: &ExprRef, expr: Expr) {
+        self.0[id.0 as usize] = expr;
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Expr {
     Constant(i32),
+    Var(Identifier),
     Unary(UnaryOperator, ExprRef),
     Binary(BinaryOperator, ExprRef, ExprRef),
+    Assignment(ExprRef, ExprRef),
+}
+
+impl Expr {
+    pub fn is_lvalue(&self) -> bool {
+        matches!(self, Expr::Var(_))
+    }
+
+    pub fn var(&self) -> std::io::Result<String> {
+        match self {
+            Expr::Var(identifier) => Ok(identifier.name().to_string()),
+            _ => Err(std::io::Error::other("Not a variable")),
+        }
+    }
 }
 
 impl Display for Expr {
@@ -131,11 +194,13 @@ impl Display for Expr {
             Expr::Constant(value) => write!(f, "{}", value),
             Expr::Unary(op, expr) => write!(f, "{}({})", op, expr),
             Expr::Binary(op, left, right) => write!(f, "({} {} {})", left, op, right),
+            Expr::Var(identifier) => write!(f, "{}", identifier.name()),
+            Expr::Assignment(lvalue, rvalue) => write!(f, "{} = {}", lvalue, rvalue),
         }
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum UnaryOperator {
     Complement,
     Negate,
@@ -152,7 +217,7 @@ impl Display for UnaryOperator {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum BinaryOperator {
     Add,
     Subtract,

@@ -7,7 +7,7 @@ use std::{
 
 use crate::codegen::asm_ast::*;
 
-const LABEL_PREFIX: &'static str = get_label_prefix();
+const LABEL_PREFIX: &str = get_label_prefix();
 const fn get_label_prefix() -> &'static str {
     #[cfg(target_os = "macos")]
     {

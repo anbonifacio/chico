@@ -7,26 +7,30 @@ mod codegen;
 mod emitter;
 mod lexer;
 mod parser;
+mod semantic_analysis;
 mod tacky_ir;
 use crate::codegen::codegen_passes::Codegen;
 use crate::emitter::code_emitter::CodeEmitter;
 use crate::lexer::c_lexer::Lexer;
 use crate::parser::c_ast::ExprPool;
 use crate::parser::c_parser::CParser;
+use crate::semantic_analysis::SemanticAnalysis;
 use crate::tacky_ir::tacky::TackyGenerator;
 
 #[derive(Parser)]
 struct Cli {
     input_file: PathBuf,
-    #[arg(long, action = ArgAction::SetTrue, conflicts_with_all = ["parse", "codegen", "tacky", "emit"])]
+    #[arg(long, action = ArgAction::SetTrue, conflicts_with_all = ["parse", "validate", "codegen", "tacky", "emit"])]
     lex: Option<bool>,
-    #[arg(long, action = ArgAction::SetTrue, conflicts_with_all = ["lex", "codegen", "tacky", "emit"])]
+    #[arg(long, action = ArgAction::SetTrue, conflicts_with_all = ["lex", "validate", "codegen", "tacky", "emit"])]
     parse: Option<bool>,
-    #[arg(long, action = ArgAction::SetTrue, conflicts_with_all = ["lex", "parse", "codegen", "emit"])]
+    #[arg(long, action = ArgAction::SetTrue, conflicts_with_all = ["lex", "parse", "codegen", "tacky", "emit"])]
+    validate: Option<bool>,
+    #[arg(long, action = ArgAction::SetTrue, conflicts_with_all = ["lex", "parse", "validate", "codegen", "emit"])]
     tacky: Option<bool>,
-    #[arg(long, action = ArgAction::SetTrue, conflicts_with_all = ["lex", "parse", "tacky", "emit"])]
+    #[arg(long, action = ArgAction::SetTrue, conflicts_with_all = ["lex", "parse", "validate", "tacky", "emit"])]
     codegen: Option<bool>,
-    #[arg(long, action = ArgAction::SetTrue, conflicts_with_all = ["lex", "parse", "tacky", "codegen"])]
+    #[arg(long, action = ArgAction::SetTrue, conflicts_with_all = ["lex", "parse", "validate", "tacky", "codegen"])]
     emit: Option<bool>,
     #[arg(long, action = ArgAction::SetTrue)]
     keep_generated: Option<bool>,
@@ -37,6 +41,7 @@ enum Stage {
     All,
     Lex,
     Parse,
+    Validate,
     Tacky,
     Codegen,
     Emit,
@@ -89,8 +94,17 @@ fn main() -> std::io::Result<()> {
         return Ok(());
     }
 
+    let mut semantic_analizer = SemanticAnalysis::new(&mut expr_pool);
+    let c_program = semantic_analizer.analyze_program(c_program)?;
+    log::debug!("Semantically analyzed program: {}", c_program);
+
+    if stage == Stage::Validate {
+        cleanup(&cli, &stage, &preprocessed, &assembled);
+        return Ok(());
+    }
+
     let tacky = TackyGenerator::new(&expr_pool);
-    let tacky_ir = tacky.generate_ir(&c_program);
+    let tacky_ir = tacky.generate_ir(&c_program)?;
     log::debug!("Generated Tacky IR: {}", tacky_ir);
 
     if stage == Stage::Tacky {
@@ -139,6 +153,8 @@ fn choose_stage(cli: &Cli) -> Stage {
         Stage::Lex
     } else if let Some(true) = cli.parse {
         Stage::Parse
+    } else if let Some(true) = cli.validate {
+        Stage::Validate
     } else if let Some(true) = cli.tacky {
         Stage::Tacky
     } else if let Some(true) = cli.codegen {

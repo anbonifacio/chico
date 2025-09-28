@@ -1,4 +1,4 @@
-use crate::parser::c_ast;
+use crate::parser::c_ast::{self, BlockItem};
 use crate::parser::c_ast::{CProgram, ExprPool, ExprRef, Statement};
 use crate::tacky_ir::tacky_ast;
 use crate::tacky_ir::tacky_ast::*;
@@ -13,52 +13,79 @@ impl<'expr> TackyGenerator<'expr> {
         TackyGenerator { expr_pool }
     }
 
-    pub fn generate_ir(&self, ast: &CProgram) -> TackyIR {
-        let ir = self.generate_function_ir(ast);
-        TackyIR::Program(ir)
+    pub fn generate_ir(&self, ast: &CProgram) -> std::io::Result<TackyIR> {
+        let ir = self.generate_function_ir(ast)?;
+        Ok(TackyIR::Program(ir))
     }
 
-    pub fn generate_function_ir(&self, ast: &CProgram) -> FunctionDefinition {
+    pub fn generate_function_ir(&self, ast: &CProgram) -> std::io::Result<FunctionDefinition> {
         let identifier = ast.fn_def().identifier().name();
         let body = ast.fn_def().body();
-        let instructions = self.generate_instructions(body);
+        let mut instructions = self.generate_instructions(body)?;
+        instructions.append(Instruction::Return(Val::Constant(0)));
 
-        FunctionDefinition::Function(Identifier::Name(identifier.to_string()), instructions)
+        Ok(FunctionDefinition::Function(
+            Identifier::Name(identifier.to_string()),
+            instructions,
+        ))
     }
 
-    fn generate_instructions(&self, body: &Statement) -> Instructions {
+    fn generate_instructions(&self, body: &[BlockItem]) -> std::io::Result<Instructions> {
+        log::debug!("Generating instructions for body: {:?}", body);
         let mut instructions = Instructions::new();
-        match body {
-            Statement::Return(expr_ref) => {
-                let expr = self.emit_tacky(expr_ref, &mut instructions);
-                instructions.append(Instruction::Return(expr));
+        for item in body.iter() {
+            match item {
+                BlockItem::S(statement) => match statement {
+                    Statement::Return(expr_ref) => {
+                        log::debug!("Emitting Return statement: {:?}", statement);
+                        let expr = self.emit_tacky(expr_ref, &mut instructions)?;
+                        instructions.append(Instruction::Return(expr));
+                    }
+                    Statement::Expression(expr_ref) => {
+                        self.emit_tacky(expr_ref, &mut instructions)?;
+                    }
+                    Statement::Null => {}
+                },
+                BlockItem::D(declaration) => {
+                    if let Some(init) = declaration.initializer() {
+                        log::debug!("Emitting declaration with initializer: {:?}", declaration);
+                        let var = Val::Var(Identifier::Name(declaration.name().to_string()));
+                        let result = self.emit_tacky(&init, &mut instructions)?;
+                        instructions.append(Instruction::Copy(result, var.clone()));
+                    }
+                }
             }
         }
-        instructions
+        Ok(instructions)
     }
 
-    fn emit_tacky(&self, expr_ref: &ExprRef, instructions: &mut Instructions) -> Val {
+    fn emit_tacky(
+        &self,
+        expr_ref: &ExprRef,
+        instructions: &mut Instructions,
+    ) -> std::io::Result<Val> {
         let expr = self.expr_pool.get_expr(*expr_ref);
         match expr {
             c_ast::Expr::Unary(operator, inner_expr_ref) => {
-                let src = self.emit_tacky(inner_expr_ref, instructions);
+                log::debug!("Emitting Unary expression: {:?}", expr);
+                let src = self.emit_tacky(inner_expr_ref, instructions)?;
                 let dst_name = self.make_temporary(inner_expr_ref);
                 let dst = Val::Var(Identifier::Name(dst_name.clone()));
                 let tacky_op = self.convert_unop(operator);
                 instructions.append(Instruction::Unary(tacky_op, src, dst.clone()));
-                dst
+                Ok(dst)
             }
             c_ast::Expr::Binary(c_ast::BinaryOperator::And, left, right) => {
                 let dst_name = self.make_temporary(left);
                 let false_label = self.make_label("and_false", left);
                 let end_label = self.make_label("and_end", left);
                 let dst = Val::Var(Identifier::Name(dst_name.clone()));
-                let v1 = self.emit_tacky(left, instructions);
+                let v1 = self.emit_tacky(left, instructions)?;
                 instructions.append(Instruction::JumpIfZero(
                     v1,
                     Identifier::Name(false_label.clone()),
                 ));
-                let v2 = self.emit_tacky(right, instructions);
+                let v2 = self.emit_tacky(right, instructions)?;
                 instructions.append(Instruction::JumpIfZero(
                     v2,
                     Identifier::Name(false_label.clone()),
@@ -68,19 +95,19 @@ impl<'expr> TackyGenerator<'expr> {
                 instructions.append(Instruction::Label(Identifier::Name(false_label)));
                 instructions.append(Instruction::Copy(Val::Constant(0), dst.clone()));
                 instructions.append(Instruction::Label(Identifier::Name(end_label)));
-                dst
+                Ok(dst)
             }
             c_ast::Expr::Binary(c_ast::BinaryOperator::Or, left, right) => {
                 let dst_name = self.make_temporary(left);
                 let true_label = self.make_label("or_true", left);
                 let end_label = self.make_label("or_end", left);
                 let dst = Val::Var(Identifier::Name(dst_name.clone()));
-                let v1 = self.emit_tacky(left, instructions);
+                let v1 = self.emit_tacky(left, instructions)?;
                 instructions.append(Instruction::JumpIfNotZero(
                     v1,
                     Identifier::Name(true_label.clone()),
                 ));
-                let v2 = self.emit_tacky(right, instructions);
+                let v2 = self.emit_tacky(right, instructions)?;
                 instructions.append(Instruction::JumpIfNotZero(
                     v2,
                     Identifier::Name(true_label.clone()),
@@ -90,18 +117,26 @@ impl<'expr> TackyGenerator<'expr> {
                 instructions.append(Instruction::Label(Identifier::Name(true_label)));
                 instructions.append(Instruction::Copy(Val::Constant(1), dst.clone()));
                 instructions.append(Instruction::Label(Identifier::Name(end_label)));
-                dst
+                Ok(dst)
             }
             c_ast::Expr::Binary(operator, left, right) => {
-                let v1 = self.emit_tacky(left, instructions);
-                let v2 = self.emit_tacky(right, instructions);
+                let v1 = self.emit_tacky(left, instructions)?;
+                let v2 = self.emit_tacky(right, instructions)?;
                 let dst_name = self.make_temporary(left);
                 let dst = Val::Var(Identifier::Name(dst_name.clone()));
                 let tacky_op = self.convert_binop(operator);
                 instructions.append(Instruction::Binary(tacky_op, v1, v2, dst.clone()));
-                dst
+                Ok(dst)
             }
-            c_ast::Expr::Constant(c) => Val::Constant(*c),
+            c_ast::Expr::Constant(c) => Ok(Val::Constant(*c)),
+            c_ast::Expr::Var(v) => Ok(Val::Var(Identifier::Name(v.name().to_string()))),
+            c_ast::Expr::Assignment(var_ref, rhs) => {
+                let expr = self.expr_pool.get_expr(*var_ref);
+                let var = Val::Var(Identifier::Name(expr.var()?));
+                let result = self.emit_tacky(rhs, instructions)?;
+                instructions.append(Instruction::Copy(result, var.clone()));
+                Ok(var)
+            }
         }
     }
 

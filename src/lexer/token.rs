@@ -32,6 +32,7 @@ pub enum TokenType {
     GreaterThan,
     LessThanEq,
     GreaterThanEq,
+    Assign,
 }
 
 impl TokenType {
@@ -50,6 +51,7 @@ impl TokenType {
             TokenType::BitwiseOr => 15,
             TokenType::And => 10,
             TokenType::Or => 5,
+            TokenType::Assign => 1,
             _ => 0,
         }
     }
@@ -75,6 +77,7 @@ impl TokenType {
                 | TokenType::LessThanEq
                 | TokenType::GreaterThanEq
                 | TokenType::Equal
+                | TokenType::Assign
         )
     }
 }
