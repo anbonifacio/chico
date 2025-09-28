@@ -40,6 +40,16 @@ static GREATER_THAN: LazyLock<Regex> = LazyLock::new(|| Regex::new(r">").unwrap(
 static LESS_OR_EQ: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"<=").unwrap());
 static GREATER_OR_EQ: LazyLock<Regex> = LazyLock::new(|| Regex::new(r">=").unwrap());
 static ASSIGN: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"=").unwrap());
+static ASSIGN_PLUS: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?:\+=)").unwrap());
+static ASSIGN_MINUS: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?:-=)").unwrap());
+static ASSIGN_MULT: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?:\*=)").unwrap());
+static ASSIGN_DIV: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?:/=)").unwrap());
+static ASSIGN_MOD: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?:%=)").unwrap());
+static ASSIGN_AND: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?:&=)").unwrap());
+static ASSIGN_OR: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?:\|=)").unwrap());
+static ASSIGN_XOR: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?:\^=)").unwrap());
+static ASSIGN_LEFT_SHIFT: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?:<<=)").unwrap());
+static ASSIGN_RIGHT_SHIFT: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?:>>=)").unwrap());
 
 static PATTERNS: LazyLock<Vec<(&Regex, TokenType)>> = LazyLock::new(|| {
     vec![
@@ -76,5 +86,15 @@ static PATTERNS: LazyLock<Vec<(&Regex, TokenType)>> = LazyLock::new(|| {
         (&*LESS_THAN, TokenType::LessThan),
         (&*GREATER_THAN, TokenType::GreaterThan),
         (&*ASSIGN, TokenType::Assign),
+        (&*ASSIGN_PLUS, TokenType::AssignPlus),
+        (&*ASSIGN_MINUS, TokenType::AssignMinus),
+        (&*ASSIGN_MULT, TokenType::AssignMult),
+        (&*ASSIGN_DIV, TokenType::AssignDiv),
+        (&*ASSIGN_MOD, TokenType::AssignMod),
+        (&*ASSIGN_AND, TokenType::AssignAnd),
+        (&*ASSIGN_OR, TokenType::AssignOr),
+        (&*ASSIGN_XOR, TokenType::AssignXor),
+        (&*ASSIGN_LEFT_SHIFT, TokenType::AssignLeftShift),
+        (&*ASSIGN_RIGHT_SHIFT, TokenType::AssignRightShift),
     ]
 });

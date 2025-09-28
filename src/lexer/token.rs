@@ -33,6 +33,16 @@ pub enum TokenType {
     LessThanEq,
     GreaterThanEq,
     Assign,
+    AssignPlus,
+    AssignMinus,
+    AssignMult,
+    AssignDiv,
+    AssignMod,
+    AssignAnd,
+    AssignOr,
+    AssignXor,
+    AssignLeftShift,
+    AssignRightShift,
 }
 
 impl TokenType {
@@ -51,7 +61,17 @@ impl TokenType {
             TokenType::BitwiseOr => 15,
             TokenType::And => 10,
             TokenType::Or => 5,
-            TokenType::Assign => 1,
+            TokenType::Assign
+            | TokenType::AssignPlus
+            | TokenType::AssignMinus
+            | TokenType::AssignMult
+            | TokenType::AssignDiv
+            | TokenType::AssignMod
+            | TokenType::AssignAnd
+            | TokenType::AssignOr
+            | TokenType::AssignXor
+            | TokenType::AssignLeftShift
+            | TokenType::AssignRightShift => 1,
             _ => 0,
         }
     }
@@ -78,6 +98,16 @@ impl TokenType {
                 | TokenType::GreaterThanEq
                 | TokenType::Equal
                 | TokenType::Assign
+                | TokenType::AssignPlus
+                | TokenType::AssignMinus
+                | TokenType::AssignMult
+                | TokenType::AssignDiv
+                | TokenType::AssignMod
+                | TokenType::AssignAnd
+                | TokenType::AssignOr
+                | TokenType::AssignXor
+                | TokenType::AssignLeftShift
+                | TokenType::AssignRightShift
         )
     }
 }
