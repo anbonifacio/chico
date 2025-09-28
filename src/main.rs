@@ -96,7 +96,7 @@ fn main() -> std::io::Result<()> {
 
     let mut semantic_analizer = SemanticAnalysis::new(&mut expr_pool);
     let c_program = semantic_analizer.analyze_program(c_program)?;
-    log::debug!("Semantically analyzed program:\n {}", c_program);
+    log::debug!("Semantically analyzed program: {}", c_program);
 
     if stage == Stage::Validate {
         cleanup(&cli, &stage, &preprocessed, &assembled);

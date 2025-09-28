@@ -100,6 +100,19 @@ pub enum Declaration {
     Declaration(Identifier, Option<ExprRef>),
 }
 
+impl Display for Declaration {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Declaration::Declaration(identifier, Some(init)) => {
+                write!(f, "Declaration: {} = {}", identifier.name(), init)
+            }
+            Declaration::Declaration(identifier, None) => {
+                write!(f, "Declaration: {}", identifier.name())
+            }
+        }
+    }
+}
+
 impl Declaration {
     pub fn name(&self) -> &str {
         match self {
@@ -204,7 +217,7 @@ impl Display for UnaryOperator {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum BinaryOperator {
     Add,
     Subtract,

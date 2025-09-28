@@ -91,6 +91,7 @@ impl<'expr> CParser<'expr> {
                     Statement::Return(expression)
                 }
                 TokenType::Assign => {
+                    log::debug!("Parsing assignment statement...");
                     self.expect(TokenType::Assign, tokens_iter)?;
                     let expression = self.parse_expression(tokens_iter, 0)?;
                     Statement::Expression(expression)
@@ -354,7 +355,12 @@ impl<'expr> CParser<'expr> {
             Some(next_token) => match next_token.token_type {
                 TokenType::Assign => {
                     self.expect(TokenType::Assign, tokens_iter)?;
+                    log::debug!("Parsing initializer for declaration...");
                     let expr = self.parse_expression(tokens_iter, 0)?;
+                    log::debug!(
+                        "Parsed initializer expression: {}",
+                        self.expr_pool.get_expr(expr)
+                    );
                     Some(expr)
                 }
                 _ => None,
@@ -362,6 +368,8 @@ impl<'expr> CParser<'expr> {
             None => None,
         };
         self.expect(TokenType::Semicolon, tokens_iter)?;
-        Ok(Declaration::Declaration(identifier, expr))
+        let declaration = Declaration::Declaration(identifier, expr);
+        log::debug!("Parsed declaration: {}", declaration);
+        Ok(declaration)
     }
 }

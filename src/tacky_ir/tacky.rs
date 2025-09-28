@@ -34,6 +34,7 @@ impl<'expr> TackyGenerator<'expr> {
             match item {
                 BlockItem::S(statement) => match statement {
                     Statement::Return(expr_ref) => {
+                        log::debug!("Emitting Return statement: {:?}", statement);
                         let expr = self.emit_tacky(expr_ref, &mut instructions);
                         instructions.append(Instruction::Return(expr));
                     }
@@ -44,7 +45,10 @@ impl<'expr> TackyGenerator<'expr> {
                 },
                 BlockItem::D(declaration) => {
                     if let Some(init) = declaration.initializer() {
-                        self.emit_tacky(&init, &mut instructions);
+                        log::debug!("Emitting declaration with initializer: {:?}", declaration);
+                        let var = Val::Var(Identifier::Name(declaration.name().to_string()));
+                        let result = self.emit_tacky(&init, &mut instructions);
+                        instructions.append(Instruction::Copy(result, var.clone()));
                     }
                 }
             }
@@ -56,6 +60,7 @@ impl<'expr> TackyGenerator<'expr> {
         let expr = self.expr_pool.get_expr(*expr_ref);
         match expr {
             c_ast::Expr::Unary(operator, inner_expr_ref) => {
+                log::debug!("Emitting Unary expression: {:?}", expr);
                 let src = self.emit_tacky(inner_expr_ref, instructions);
                 let dst_name = self.make_temporary(inner_expr_ref);
                 let dst = Val::Var(Identifier::Name(dst_name.clone()));

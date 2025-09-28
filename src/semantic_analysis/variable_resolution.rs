@@ -60,17 +60,17 @@ impl<'expr> VariableResolver<'expr> {
 
     pub fn resolve_exp(
         &mut self,
-        initializer_ref: &crate::parser::c_ast::ExprRef,
+        expr_ref: &crate::parser::c_ast::ExprRef,
     ) -> std::io::Result<ExprRef> {
         // Clone the expression out of the pool to avoid holding a borrow across recursion
-        let expr = self.expr_pool.get_expr(*initializer_ref).clone();
+        let expr = self.expr_pool.get_expr(*expr_ref).clone();
         match expr {
             crate::parser::c_ast::Expr::Var(Identifier::Name(var_name)) => {
                 if let Some(resolved_name) = self.variable_map.get(&var_name) {
                     let new_expr =
                         crate::parser::c_ast::Expr::Var(Identifier::Name(resolved_name.clone()));
-                    self.expr_pool.update_expr(initializer_ref, new_expr);
-                    Ok(*initializer_ref)
+                    self.expr_pool.update_expr(expr_ref, new_expr);
+                    Ok(*expr_ref)
                 } else {
                     Err(std::io::Error::other(format!(
                         "Undeclared variable: {}",
@@ -87,27 +87,27 @@ impl<'expr> VariableResolver<'expr> {
                 let new_left = self.resolve_exp(&left_ref)?;
                 let new_right = self.resolve_exp(&right_ref)?;
                 let new_expr = crate::parser::c_ast::Expr::Assignment(new_left, new_right);
-                self.expr_pool.update_expr(initializer_ref, new_expr);
-                Ok(*initializer_ref)
+                self.expr_pool.update_expr(expr_ref, new_expr);
+                Ok(*expr_ref)
             }
             crate::parser::c_ast::Expr::Constant(c) => {
                 let new_expr = crate::parser::c_ast::Expr::Constant(c);
-                self.expr_pool.update_expr(initializer_ref, new_expr);
-                Ok(*initializer_ref)
+                self.expr_pool.update_expr(expr_ref, new_expr);
+                Ok(*expr_ref)
             }
-            crate::parser::c_ast::Expr::Unary(unary_operator, expr_ref) => {
-                let new_inner = self.resolve_exp(&expr_ref)?;
+            crate::parser::c_ast::Expr::Unary(unary_operator, inner_expr_ref) => {
+                let new_inner = self.resolve_exp(&inner_expr_ref)?;
                 let new_expr = crate::parser::c_ast::Expr::Unary(unary_operator, new_inner);
-                self.expr_pool.update_expr(initializer_ref, new_expr);
-                Ok(*initializer_ref)
+                self.expr_pool.update_expr(expr_ref, new_expr);
+                Ok(*expr_ref)
             }
             crate::parser::c_ast::Expr::Binary(binary_operator, left_ref, right_ref) => {
                 let new_left = self.resolve_exp(&left_ref)?;
                 let new_right = self.resolve_exp(&right_ref)?;
                 let new_expr =
                     crate::parser::c_ast::Expr::Binary(binary_operator, new_left, new_right);
-                self.expr_pool.update_expr(initializer_ref, new_expr);
-                Ok(*initializer_ref)
+                self.expr_pool.update_expr(expr_ref, new_expr);
+                Ok(*expr_ref)
             }
         }
     }
