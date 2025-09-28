@@ -153,6 +153,8 @@ impl<'expr> TackyGenerator<'expr> {
             c_ast::UnaryOperator::Negate => tacky_ast::UnaryOperator::Negate,
             c_ast::UnaryOperator::Complement => tacky_ast::UnaryOperator::Complement,
             c_ast::UnaryOperator::Not => tacky_ast::UnaryOperator::Not,
+            c_ast::UnaryOperator::Increment => tacky_ast::UnaryOperator::Increment,
+            c_ast::UnaryOperator::Decrement => tacky_ast::UnaryOperator::Decrement,
         }
     }
 
@@ -176,6 +178,17 @@ impl<'expr> TackyGenerator<'expr> {
             c_ast::BinaryOperator::LessOrEqual => BinaryOperator::LessOrEqual,
             c_ast::BinaryOperator::GreaterThan => BinaryOperator::GreaterThan,
             c_ast::BinaryOperator::GreaterOrEqual => BinaryOperator::GreaterOrEqual,
+            c_ast::BinaryOperator::Assign => BinaryOperator::Assign,
+            c_ast::BinaryOperator::AssignPlus => BinaryOperator::AssignPlus,
+            c_ast::BinaryOperator::AssignMinus => BinaryOperator::AssignMinus,
+            c_ast::BinaryOperator::AssignMult => BinaryOperator::AssignMult,
+            c_ast::BinaryOperator::AssignDiv => BinaryOperator::AssignDiv,
+            c_ast::BinaryOperator::AssignMod => BinaryOperator::AssignMod,
+            c_ast::BinaryOperator::AssignAnd => BinaryOperator::AssignAnd,
+            c_ast::BinaryOperator::AssignOr => BinaryOperator::AssignOr,
+            c_ast::BinaryOperator::AssignXor => BinaryOperator::AssignXor,
+            c_ast::BinaryOperator::AssignLeftShift => BinaryOperator::AssignLeftShift,
+            c_ast::BinaryOperator::AssignRightShift => BinaryOperator::AssignRightShift,
         }
     }
 }

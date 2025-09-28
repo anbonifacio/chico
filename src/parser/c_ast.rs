@@ -205,6 +205,8 @@ pub enum UnaryOperator {
     Complement,
     Negate,
     Not,
+    Increment,
+    Decrement,
 }
 
 impl Display for UnaryOperator {
@@ -213,6 +215,8 @@ impl Display for UnaryOperator {
             UnaryOperator::Complement => write!(f, "'~'"),
             UnaryOperator::Negate => write!(f, "'-'"),
             UnaryOperator::Not => write!(f, "'!'"),
+            UnaryOperator::Increment => write!(f, "'++'"),
+            UnaryOperator::Decrement => write!(f, "'--'"),
         }
     }
 }
@@ -237,6 +241,17 @@ pub enum BinaryOperator {
     LessOrEqual,
     GreaterThan,
     GreaterOrEqual,
+    Assign,
+    AssignPlus,
+    AssignMinus,
+    AssignMult,
+    AssignDiv,
+    AssignMod,
+    AssignAnd,
+    AssignOr,
+    AssignXor,
+    AssignLeftShift,
+    AssignRightShift,
 }
 
 impl Display for BinaryOperator {
@@ -260,6 +275,17 @@ impl Display for BinaryOperator {
             BinaryOperator::LessOrEqual => write!(f, "'<='"),
             BinaryOperator::GreaterThan => write!(f, "'>'"),
             BinaryOperator::GreaterOrEqual => write!(f, "'>='"),
+            BinaryOperator::Assign => write!(f, "'='"),
+            BinaryOperator::AssignPlus => write!(f, "'+='"),
+            BinaryOperator::AssignMinus => write!(f, "'-='"),
+            BinaryOperator::AssignMult => write!(f, "'*='"),
+            BinaryOperator::AssignDiv => write!(f, "'/='"),
+            BinaryOperator::AssignMod => write!(f, "'%='"),
+            BinaryOperator::AssignAnd => write!(f, "'&='"),
+            BinaryOperator::AssignOr => write!(f, "'|='"),
+            BinaryOperator::AssignXor => write!(f, "'^='"),
+            BinaryOperator::AssignLeftShift => write!(f, "'<<='"),
+            BinaryOperator::AssignRightShift => write!(f, "'>>='"),
         }
     }
 }

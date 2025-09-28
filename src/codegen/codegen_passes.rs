@@ -115,6 +115,10 @@ impl Codegen {
                         asm_instructions.push(Instruction::Mov(Operand::Imm(0), dst.clone()));
                         asm_instructions.push(Instruction::SetCC(CondCode::E, dst));
                     }
+                    _ => unsafe {
+                        // Safety: Other operators are already matched on their own
+                        unreachable_unchecked()
+                    },
                 }
             }
             tacky_ast::Instruction::Binary(Equal, src1, src2, dst) => {

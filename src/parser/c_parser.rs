@@ -90,9 +90,19 @@ impl<'expr> CParser<'expr> {
                     let expression = self.parse_expression(tokens_iter, 0)?;
                     Statement::Return(expression)
                 }
-                TokenType::Assign => {
+                TokenType::Assign
+                | TokenType::AssignPlus
+                | TokenType::AssignMinus
+                | TokenType::AssignMult
+                | TokenType::AssignDiv
+                | TokenType::AssignMod
+                | TokenType::AssignAnd
+                | TokenType::AssignOr
+                | TokenType::AssignXor
+                | TokenType::AssignLeftShift
+                | TokenType::AssignRightShift => {
                     log::debug!("Parsing assignment statement...");
-                    self.expect(TokenType::Assign, tokens_iter)?;
+                    self.extract_token(tokens_iter)?;
                     let expression = self.parse_expression(tokens_iter, 0)?;
                     Statement::Expression(expression)
                 }
@@ -101,7 +111,9 @@ impl<'expr> CParser<'expr> {
                 | TokenType::OpenParenthesis
                 | TokenType::Tilde
                 | TokenType::Hyphen
-                | TokenType::Not => {
+                | TokenType::Not
+                | TokenType::PlusPlus
+                | TokenType::TwoHyphens => {
                     let expression = self.parse_expression(tokens_iter, 0)?;
                     Statement::Expression(expression)
                 }
@@ -138,7 +150,11 @@ impl<'expr> CParser<'expr> {
                     log::debug!("Parsed constant: {}", self.expr_pool.get_expr(expr_ref));
                     Ok(expr_ref)
                 }
-                TokenType::Tilde | TokenType::Hyphen | TokenType::Not => {
+                TokenType::Tilde
+                | TokenType::Hyphen
+                | TokenType::Not
+                | TokenType::PlusPlus
+                | TokenType::TwoHyphens => {
                     let token = self.extract_token(tokens_iter)?;
                     let operator = self.parse_unop(token)?;
                     let inner_expr = self.parse_factor(tokens_iter)?;
@@ -195,19 +211,31 @@ impl<'expr> CParser<'expr> {
             loop {
                 let next_prec = next_token.token_type.precedence();
                 if next_token.token_type.is_binop() && next_prec >= min_prec {
-                    if next_token.token_type == TokenType::Assign {
-                        // Assignment is right associative
-                        log::debug!("Parsing assignment operator");
-                        self.expect(TokenType::Assign, tokens_iter)?;
-                        let right = self.parse_expression(tokens_iter, next_prec)?;
-                        log::debug!("Parsed right factor: {}", self.expr_pool.get_expr(right));
-                        left = self.expr_pool.add_expr(Expr::Assignment(left, right));
-                    } else {
-                        let operator = self.parse_binop(tokens_iter)?;
-                        log::debug!("Parsed binary operator: {:?}", operator);
-                        let right = self.parse_expression(tokens_iter, next_prec + 1)?;
-                        log::debug!("Parsed right factor: {}", self.expr_pool.get_expr(right));
-                        left = self.expr_pool.add_expr(Expr::Binary(operator, left, right));
+                    match next_token.token_type {
+                        TokenType::Assign
+                        | TokenType::AssignPlus
+                        | TokenType::AssignMinus
+                        | TokenType::AssignMult
+                        | TokenType::AssignDiv
+                        | TokenType::AssignMod
+                        | TokenType::AssignAnd
+                        | TokenType::AssignOr
+                        | TokenType::AssignXor
+                        | TokenType::AssignLeftShift
+                        | TokenType::AssignRightShift => {
+                            log::debug!("Parsing assignment operator {:?}", next_token.token_type);
+                            self.extract_token(tokens_iter)?;
+                            let right = self.parse_expression(tokens_iter, next_prec)?;
+                            log::debug!("Parsed right factor: {}", self.expr_pool.get_expr(right));
+                            left = self.expr_pool.add_expr(Expr::Assignment(left, right));
+                        }
+                        _ => {
+                            let operator = self.parse_binop(tokens_iter)?;
+                            log::debug!("Parsed binary operator: {:?}", operator);
+                            let right = self.parse_expression(tokens_iter, next_prec + 1)?;
+                            log::debug!("Parsed right factor: {}", self.expr_pool.get_expr(right));
+                            left = self.expr_pool.add_expr(Expr::Binary(operator, left, right));
+                        }
                     }
                     next_token = if let Some(next_token) = tokens_iter.peek() {
                         log::debug!("Next token: {:?}", next_token);
@@ -237,6 +265,8 @@ impl<'expr> CParser<'expr> {
             TokenType::Tilde => Ok(UnaryOperator::Complement),
             TokenType::Hyphen => Ok(UnaryOperator::Negate),
             TokenType::Not => Ok(UnaryOperator::Not),
+            TokenType::PlusPlus => Ok(UnaryOperator::Increment),
+            TokenType::TwoHyphens => Ok(UnaryOperator::Decrement),
             _ => Err(std::io::Error::new(
                 std::io::ErrorKind::InvalidInput,
                 format!("Expected unary operator, found {:?}", token.token_type),
@@ -306,6 +336,17 @@ impl<'expr> CParser<'expr> {
                 TokenType::LessThanEq => Ok(BinaryOperator::LessOrEqual),
                 TokenType::GreaterThan => Ok(BinaryOperator::GreaterThan),
                 TokenType::GreaterThanEq => Ok(BinaryOperator::GreaterOrEqual),
+                TokenType::Assign => Ok(BinaryOperator::Assign),
+                TokenType::AssignPlus => Ok(BinaryOperator::AssignPlus),
+                TokenType::AssignMinus => Ok(BinaryOperator::AssignMinus),
+                TokenType::AssignMult => Ok(BinaryOperator::AssignMult),
+                TokenType::AssignDiv => Ok(BinaryOperator::AssignDiv),
+                TokenType::AssignMod => Ok(BinaryOperator::AssignMod),
+                TokenType::AssignAnd => Ok(BinaryOperator::AssignAnd),
+                TokenType::AssignOr => Ok(BinaryOperator::AssignOr),
+                TokenType::AssignXor => Ok(BinaryOperator::AssignXor),
+                TokenType::AssignLeftShift => Ok(BinaryOperator::AssignLeftShift),
+                TokenType::AssignRightShift => Ok(BinaryOperator::AssignRightShift),
                 _ => Err(std::io::Error::new(
                     std::io::ErrorKind::InvalidInput,
                     format!("Expected binary operator, found {:?}", token.token_type),
