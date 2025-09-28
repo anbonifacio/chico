@@ -180,10 +180,10 @@ impl Expr {
         matches!(self, Expr::Var(_))
     }
 
-    pub fn var(&self) -> String {
+    pub fn var(&self) -> std::io::Result<String> {
         match self {
-            Expr::Var(identifier) => identifier.name().to_string(),
-            _ => panic!("Not a variable"),
+            Expr::Var(identifier) => Ok(identifier.name().to_string()),
+            _ => Err(std::io::Error::other("Not a variable")),
         }
     }
 }

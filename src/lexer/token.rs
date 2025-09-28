@@ -80,18 +80,6 @@ impl TokenType {
                 | TokenType::Assign
         )
     }
-
-    pub fn is_exp(&self) -> bool {
-        matches!(
-            self,
-            TokenType::Constant
-                | TokenType::Identifier
-                | TokenType::OpenParenthesis
-                | TokenType::Tilde
-                | TokenType::Hyphen
-                | TokenType::Not
-        )
-    }
 }
 
 #[derive(Debug, PartialEq)]
