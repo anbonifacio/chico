@@ -247,7 +247,7 @@ impl<'expr> CParser<'expr> {
             Err(std::io::Error::new(
                 std::io::ErrorKind::InvalidData,
                 format!(
-                    "Malformed factor, found: {:?}",
+                    "Malformed expression, found: {:?}",
                     tokens_iter.peekable().peek()
                 ),
             ))
@@ -313,21 +313,35 @@ impl<'expr> CParser<'expr> {
                 ),
             ))
         };
-        if let Some(next_token) = tokens_iter.peek() {
-            match next_token.token_type {
-                t if t.is_postfix_op() => {
-                    let token = self.extract_token(tokens_iter)?;
-                    let expr_ref = self.parse_postfix_expression(&token.token_type)?;
-                    log::debug!(
-                        "Parsed postfix expression: {}",
-                        self.expr_pool.get_expr(expr_ref)
-                    );
-                    return Ok(expr_ref);
-                }
-                _ => {}
-            }
-        }
+        log::debug!("Checking for postfix operations...");
+        self.parse_postfix_tokens(tokens_iter)?;
         factor
+    }
+
+    fn parse_postfix_tokens(
+        &mut self,
+        tokens_iter: &mut Peekable<Iter<'expr, Token>>,
+    ) -> Result<(), std::io::Error> {
+        Ok(loop {
+            if let Some(next_token) = tokens_iter.peek() {
+                match next_token.token_type {
+                    t if t.is_postfix_op() => {
+                        let token = self.extract_token(tokens_iter)?;
+                        let expr_ref = self.parse_postfix_expression(&token.token_type)?;
+                        log::debug!(
+                            "Parsed postfix expression: {}",
+                            self.expr_pool.get_expr(expr_ref)
+                        );
+                    }
+                    t => {
+                        log::debug!("No postfix operator found, continuing with token: {:?}", t);
+                        break;
+                    }
+                }
+            } else {
+                break;
+            }
+        })
     }
 
     fn parse_unop(&self, token: &Token) -> std::io::Result<UnaryOperator> {
@@ -533,14 +547,9 @@ mod tests {
         let res = parser
             .parse_statement(&mut tokens.iter().peekable())
             .unwrap();
-        assert!(matches!(
-            res,
-            crate::parser::c_ast::Statement::Expression(_)
-        ));
+        assert!(matches!(res, crate::parser::c_ast::Statement::Return(_)));
         println!("ExprPool: {:?}", pool);
-        println!("First Expr: {:?}", pool.get_expr(ExprRef::new(0)));
-        println!("Second Expr: {:?}", pool.get_expr(ExprRef::new(1)));
-        assert_eq!(pool.len(), 2);
+        assert_eq!(pool.len(), 3);
         assert!(matches!(
             pool.get_expr(ExprRef::new(0)),
             crate::parser::c_ast::Expr::Var(_)
@@ -548,6 +557,10 @@ mod tests {
         assert!(matches!(
             pool.get_expr(ExprRef::new(1)),
             crate::parser::c_ast::Expr::PostfixIncr(_)
+        ));
+        assert!(matches!(
+            pool.get_expr(ExprRef::new(2)),
+            crate::parser::c_ast::Expr::PostfixDecr(_)
         ));
     }
 }
