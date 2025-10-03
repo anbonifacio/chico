@@ -12,9 +12,9 @@ pub enum TokenType {
     VoidKeyword,
     Tilde,
     Hyphen,
-    TwoHyphens,
+    DoubleHyphens,
     Plus,
-    PlusPlus,
+    DoublePlus,
     Asterisk,
     ForwardSlash,
     Percent,
@@ -76,6 +76,18 @@ impl TokenType {
         }
     }
 
+    pub fn is_unop(&self) -> bool {
+        matches!(
+            self,
+            TokenType::DoublePlus
+                | TokenType::DoubleHyphens
+                | TokenType::Tilde
+                | TokenType::Not
+                | TokenType::Hyphen
+                | TokenType::Plus
+        )
+    }
+
     pub fn is_binop(&self) -> bool {
         matches!(
             self,
@@ -109,6 +121,27 @@ impl TokenType {
                 | TokenType::AssignLeftShift
                 | TokenType::AssignRightShift
         )
+    }
+
+    pub fn is_assignment(&self) -> bool {
+        matches!(
+            self,
+            TokenType::Assign
+                | TokenType::AssignPlus
+                | TokenType::AssignMinus
+                | TokenType::AssignMult
+                | TokenType::AssignDiv
+                | TokenType::AssignMod
+                | TokenType::AssignAnd
+                | TokenType::AssignOr
+                | TokenType::AssignXor
+                | TokenType::AssignLeftShift
+                | TokenType::AssignRightShift
+        )
+    }
+
+    pub fn is_postfix_op(&self) -> bool {
+        matches!(self, TokenType::DoublePlus | TokenType::DoubleHyphens)
     }
 }
 

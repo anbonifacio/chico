@@ -109,6 +109,8 @@ impl<'expr> VariableResolver<'expr> {
                 self.expr_pool.update_expr(expr_ref, new_expr);
                 Ok(*expr_ref)
             }
+            crate::parser::c_ast::Expr::PostfixIncr(expr_ref) => todo!(),
+            crate::parser::c_ast::Expr::PostfixDecr(expr_ref) => todo!(),
         }
     }
 

@@ -137,6 +137,8 @@ impl<'expr> TackyGenerator<'expr> {
                 instructions.append(Instruction::Copy(result, var.clone()));
                 Ok(var)
             }
+            c_ast::Expr::PostfixIncr(expr_ref) => todo!(),
+            c_ast::Expr::PostfixDecr(expr_ref) => todo!(),
         }
     }
 

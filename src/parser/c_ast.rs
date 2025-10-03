@@ -131,6 +131,10 @@ impl Declaration {
 pub struct ExprRef(u32);
 
 impl ExprRef {
+    pub fn new(id: u32) -> Self {
+        ExprRef(id)
+    }
+
     pub fn id(&self) -> u32 {
         self.0
     }
@@ -149,6 +153,10 @@ pub struct ExprPool(Vec<Expr>);
 impl ExprPool {
     pub fn new() -> Self {
         ExprPool(Vec::new())
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
     }
 
     pub fn get_expr(&self, id: ExprRef) -> &Expr {
@@ -173,6 +181,8 @@ pub enum Expr {
     Unary(UnaryOperator, ExprRef),
     Binary(BinaryOperator, ExprRef, ExprRef),
     Assignment(ExprRef, ExprRef),
+    PostfixIncr(ExprRef),
+    PostfixDecr(ExprRef),
 }
 
 impl Expr {
@@ -196,6 +206,8 @@ impl Display for Expr {
             Expr::Binary(op, left, right) => write!(f, "({} {} {})", left, op, right),
             Expr::Var(identifier) => write!(f, "{}", identifier.name()),
             Expr::Assignment(lvalue, rvalue) => write!(f, "{} = {}", lvalue, rvalue),
+            Expr::PostfixIncr(expr) => write!(f, "{}++", expr),
+            Expr::PostfixDecr(expr) => write!(f, "{}--", expr),
         }
     }
 }
@@ -252,6 +264,41 @@ pub enum BinaryOperator {
     AssignXor,
     AssignLeftShift,
     AssignRightShift,
+}
+
+impl BinaryOperator {
+    pub fn is_assignment(&self) -> bool {
+        matches!(
+            self,
+            BinaryOperator::Assign
+                | BinaryOperator::AssignPlus
+                | BinaryOperator::AssignMinus
+                | BinaryOperator::AssignMult
+                | BinaryOperator::AssignDiv
+                | BinaryOperator::AssignMod
+                | BinaryOperator::AssignAnd
+                | BinaryOperator::AssignOr
+                | BinaryOperator::AssignXor
+                | BinaryOperator::AssignLeftShift
+                | BinaryOperator::AssignRightShift
+        )
+    }
+
+    pub fn get_compound_operator(&self) -> Option<BinaryOperator> {
+        match self {
+            BinaryOperator::AssignPlus => Some(BinaryOperator::Add),
+            BinaryOperator::AssignMinus => Some(BinaryOperator::Subtract),
+            BinaryOperator::AssignMult => Some(BinaryOperator::Multiply),
+            BinaryOperator::AssignDiv => Some(BinaryOperator::Divide),
+            BinaryOperator::AssignMod => Some(BinaryOperator::Remainder),
+            BinaryOperator::AssignAnd => Some(BinaryOperator::BitwiseAnd),
+            BinaryOperator::AssignOr => Some(BinaryOperator::BitwiseOr),
+            BinaryOperator::AssignXor => Some(BinaryOperator::BitwiseXor),
+            BinaryOperator::AssignLeftShift => Some(BinaryOperator::LeftShift),
+            BinaryOperator::AssignRightShift => Some(BinaryOperator::RightShift),
+            _ => None,
+        }
+    }
 }
 
 impl Display for BinaryOperator {
