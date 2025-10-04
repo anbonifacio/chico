@@ -349,8 +349,8 @@ impl<'expr> CParser<'expr> {
             TokenType::Tilde => Ok(UnaryOperator::Complement),
             TokenType::Hyphen => Ok(UnaryOperator::Negate),
             TokenType::Not => Ok(UnaryOperator::Not),
-            TokenType::DoublePlus => Ok(UnaryOperator::Increment),
-            TokenType::DoubleHyphens => Ok(UnaryOperator::Decrement),
+            TokenType::DoublePlus => Ok(UnaryOperator::PrefixIncr),
+            TokenType::DoubleHyphens => Ok(UnaryOperator::PrefixDecr),
             _ => Err(std::io::Error::new(
                 std::io::ErrorKind::InvalidInput,
                 format!("Expected unary operator, found {:?}", token.token_type),
@@ -444,16 +444,16 @@ impl<'expr> CParser<'expr> {
     }
 
     fn parse_postfix_expression(&mut self, token_type: &TokenType) -> std::io::Result<ExprRef> {
-        let last_exp = ExprRef::new(self.expr_pool.len() as u32 - 1);
+        let last_exp = ExprRef::new(self.expr_pool.len().saturating_sub(1) as u32);
         match token_type {
             TokenType::DoublePlus => {
                 log::debug!("Parsing postfix increment operator");
-                let expr_ref = self.expr_pool.add_expr(Expr::PostfixIncr(last_exp));
+                let expr_ref = self.expr_pool.add_expr(Expr::Unary(UnaryOperator::PostfixIncr, last_exp));
                 Ok(expr_ref)
             }
             TokenType::DoubleHyphens => {
                 log::debug!("Parsing postfix decrement operator");
-                let expr_ref = self.expr_pool.add_expr(Expr::PostfixDecr(last_exp));
+                let expr_ref = self.expr_pool.add_expr(Expr::Unary(UnaryOperator::PostfixDecr, last_exp));
                 Ok(expr_ref)
             }
             _ => {
@@ -471,7 +471,7 @@ mod tests {
     use crate::{
         lexer::token::{Token, TokenType},
         parser::{
-            c_ast::{ExprPool, ExprRef},
+            c_ast::{Expr, ExprPool, ExprRef, Statement, UnaryOperator},
             c_parser::CParser,
         },
     };
@@ -490,16 +490,16 @@ mod tests {
             .unwrap();
         assert!(matches!(
             res,
-            crate::parser::c_ast::Statement::Expression(_)
+            Statement::Expression(_)
         ));
         assert_eq!(pool.len(), 2);
         assert!(matches!(
             pool.get_expr(ExprRef::new(0)),
-            crate::parser::c_ast::Expr::Var(_)
+            Expr::Var(_)
         ));
         assert!(matches!(
             pool.get_expr(ExprRef::new(1)),
-            crate::parser::c_ast::Expr::Unary(crate::parser::c_ast::UnaryOperator::Increment, _)
+            Expr::Unary(UnaryOperator::PrefixIncr, _)
         ));
     }
 
@@ -529,7 +529,7 @@ mod tests {
         ));
         assert!(matches!(
             pool.get_expr(ExprRef::new(1)),
-            crate::parser::c_ast::Expr::PostfixIncr(_)
+            crate::parser::c_ast::Expr::Unary(UnaryOperator::PostfixIncr, _)
         ));
     }
 
@@ -556,11 +556,11 @@ mod tests {
         ));
         assert!(matches!(
             pool.get_expr(ExprRef::new(1)),
-            crate::parser::c_ast::Expr::PostfixIncr(_)
+            Expr::Unary(UnaryOperator::PostfixIncr, _)
         ));
         assert!(matches!(
             pool.get_expr(ExprRef::new(2)),
-            crate::parser::c_ast::Expr::PostfixDecr(_)
+            Expr::Unary(UnaryOperator::PostfixDecr, _)
         ));
     }
 }

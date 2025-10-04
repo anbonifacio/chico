@@ -137,8 +137,6 @@ impl<'expr> TackyGenerator<'expr> {
                 instructions.append(Instruction::Copy(result, var.clone()));
                 Ok(var)
             }
-            c_ast::Expr::PostfixIncr(expr_ref) => todo!(),
-            c_ast::Expr::PostfixDecr(expr_ref) => todo!(),
         }
     }
 
@@ -155,8 +153,8 @@ impl<'expr> TackyGenerator<'expr> {
             c_ast::UnaryOperator::Negate => tacky_ast::UnaryOperator::Negate,
             c_ast::UnaryOperator::Complement => tacky_ast::UnaryOperator::Complement,
             c_ast::UnaryOperator::Not => tacky_ast::UnaryOperator::Not,
-            c_ast::UnaryOperator::Increment => tacky_ast::UnaryOperator::Increment,
-            c_ast::UnaryOperator::Decrement => tacky_ast::UnaryOperator::Decrement,
+            c_ast::UnaryOperator::PrefixIncr | c_ast::UnaryOperator::PostfixIncr => tacky_ast::UnaryOperator::Increment,
+            c_ast::UnaryOperator::PrefixDecr | c_ast::UnaryOperator::PostfixDecr => tacky_ast::UnaryOperator::Decrement,
         }
     }
 

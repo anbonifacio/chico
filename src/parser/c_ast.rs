@@ -172,6 +172,12 @@ impl ExprPool {
     pub fn update_expr(&mut self, id: &ExprRef, expr: Expr) {
         self.0[id.0 as usize] = expr;
     }
+
+    pub(crate) fn last_expr(&self) -> std::io::Result<ExprRef> {
+        self.0.len().saturating_sub(1).try_into().map(ExprRef).map_err(|_| {
+            std::io::Error::other("Expression pool is empty, cannot get last expression")
+        })
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -181,8 +187,6 @@ pub enum Expr {
     Unary(UnaryOperator, ExprRef),
     Binary(BinaryOperator, ExprRef, ExprRef),
     Assignment(ExprRef, ExprRef),
-    PostfixIncr(ExprRef),
-    PostfixDecr(ExprRef),
 }
 
 impl Expr {
@@ -206,8 +210,6 @@ impl Display for Expr {
             Expr::Binary(op, left, right) => write!(f, "({} {} {})", left, op, right),
             Expr::Var(identifier) => write!(f, "{}", identifier.name()),
             Expr::Assignment(lvalue, rvalue) => write!(f, "{} = {}", lvalue, rvalue),
-            Expr::PostfixIncr(expr) => write!(f, "{}++", expr),
-            Expr::PostfixDecr(expr) => write!(f, "{}--", expr),
         }
     }
 }
@@ -217,8 +219,22 @@ pub enum UnaryOperator {
     Complement,
     Negate,
     Not,
-    Increment,
-    Decrement,
+    PrefixIncr,
+    PrefixDecr,
+    PostfixIncr,
+    PostfixDecr,
+}
+
+impl UnaryOperator {
+    pub fn is_lvalue_op(&self) -> bool {
+        matches!(
+            self,
+            UnaryOperator::PrefixIncr
+                | UnaryOperator::PrefixDecr
+                | UnaryOperator::PostfixIncr
+                | UnaryOperator::PostfixDecr
+        )
+    }
 }
 
 impl Display for UnaryOperator {
@@ -227,8 +243,8 @@ impl Display for UnaryOperator {
             UnaryOperator::Complement => write!(f, "'~'"),
             UnaryOperator::Negate => write!(f, "'-'"),
             UnaryOperator::Not => write!(f, "'!'"),
-            UnaryOperator::Increment => write!(f, "'++'"),
-            UnaryOperator::Decrement => write!(f, "'--'"),
+            UnaryOperator::PrefixIncr | UnaryOperator::PostfixIncr => write!(f, "'++'"),
+            UnaryOperator::PrefixDecr | UnaryOperator::PostfixDecr => write!(f, "'--'"),
         }
     }
 }
