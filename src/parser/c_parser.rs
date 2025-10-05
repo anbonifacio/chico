@@ -198,22 +198,22 @@ impl<'expr> CParser<'expr> {
                             match compound_op {
                                 Some(compound_op) => {
                                     // This is a compound assignment (e.g., +=, -=)
+                                    log::debug!(
+                                        "Parsing compound assignment operator: {:?}",
+                                        compound_op
+                                    );
                                     let right =
                                         self.parse_expression(tokens_iter, next_prec + 1)?;
                                     log::debug!(
                                         "Parsed right factor: {}",
                                         self.expr_pool.get_expr(right)
                                     );
-                                    let combined = self.expr_pool.add_expr(Expr::Binary(
-                                        compound_op,
-                                        left,
-                                        right,
-                                    ));
                                     left =
-                                        self.expr_pool.add_expr(Expr::Assignment(combined, right));
+                                        self.expr_pool.add_expr(Expr::Assignment(left, right));
                                 }
                                 None => {
                                     // This is a simple assignment (=)
+                                    log::debug!("Parsing simple assignment operator: {:?}", operator);
                                     let right = self.parse_expression(tokens_iter, next_prec)?;
                                     log::debug!(
                                         "Parsed right factor: {}",
