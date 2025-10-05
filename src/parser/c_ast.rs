@@ -191,7 +191,7 @@ pub enum Expr {
 
 impl Expr {
     pub fn is_lvalue(&self) -> bool {
-        matches!(self, Expr::Var(_))
+        matches!(self, Expr::Var(_) | Expr::Assignment(_, _))
     }
 
     pub fn var(&self) -> std::io::Result<String> {
