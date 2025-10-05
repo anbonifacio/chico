@@ -1,5 +1,6 @@
 use std::fmt::{Display, Formatter};
 
+#[derive(Debug)]
 pub enum CProgram {
     Program(FunctionDefinition),
 }
@@ -20,6 +21,7 @@ impl Display for CProgram {
     }
 }
 
+#[derive(Debug)]
 pub enum FunctionDefinition {
     Function(Identifier, Vec<BlockItem>),
 }
@@ -199,8 +201,8 @@ impl ExprPool {
 pub enum ExprType {
     Constant,
     Var,
-    Unary,
-    Binary,
+    Unary(UnaryOperator),
+    Binary(BinaryOperator),
     Assignment,
 }
 
@@ -229,8 +231,8 @@ impl Expr {
         match self {
             Expr::Constant(_) => ExprType::Constant,
             Expr::Var(_) => ExprType::Var,
-            Expr::Unary(_, _) => ExprType::Unary,
-            Expr::Binary(_, _, _) => ExprType::Binary,
+            Expr::Unary(op, _) => ExprType::Unary(*op),
+            Expr::Binary(op, _, _) => ExprType::Binary(*op),
             Expr::Assignment(_, _) => ExprType::Assignment,
         }
     }
@@ -248,7 +250,7 @@ impl Display for Expr {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum UnaryOperator {
     Complement,
     Negate,
@@ -283,7 +285,7 @@ impl Display for UnaryOperator {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum BinaryOperator {
     Add,
     Subtract,

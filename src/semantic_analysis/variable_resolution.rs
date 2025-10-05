@@ -72,6 +72,7 @@ impl<'expr> VariableResolver<'expr> {
         log::debug!("Resolving expr: {:?}", expr);
         match expr {
             crate::parser::c_ast::Expr::Var(Identifier::Name(var_name)) => {
+                log::debug!("Resolving Var: {}", var_name);
                 if let Some(resolved_name) = self.variable_map.get(&var_name) {
                     let new_expr =
                         crate::parser::c_ast::Expr::Var(Identifier::Name(resolved_name.clone()));
@@ -85,6 +86,7 @@ impl<'expr> VariableResolver<'expr> {
                 }
             }
             crate::parser::c_ast::Expr::Assignment(left_ref, right_ref) => {
+                log::debug!("Resolving Assignment: {:?} = {:?}", left_ref, right_ref);
                 // Clone left expression out of the pool
                 let left = self.expr_pool.get_expr(left_ref.id()).clone();
                 if !left.is_lvalue() {
@@ -101,6 +103,7 @@ impl<'expr> VariableResolver<'expr> {
                 Ok(*expr_ref)
             }
             crate::parser::c_ast::Expr::Constant(c) => {
+                log::debug!("Resolving Constant: {:?}", c);
                 let new_expr = crate::parser::c_ast::Expr::Constant(c);
                 self.expr_pool.update_expr(expr_ref, new_expr);
                 Ok(*expr_ref)
@@ -109,6 +112,7 @@ impl<'expr> VariableResolver<'expr> {
                 log::debug!("Resolving Unary: {:?}", inner_expr_ref);
                 if unary_operator.is_lvalue_op() {
                     let inner = self.expr_pool.get_expr(inner_expr_ref.id()).clone();
+                    log::debug!("Inner expr for lvalue check: {:?}", inner);
                     if !inner.is_lvalue() {
                         return Err(std::io::Error::other(format!(
                             "Invalid lvalue: {:?}[{}]",
@@ -137,5 +141,85 @@ impl<'expr> VariableResolver<'expr> {
         let count = self.counter;
         self.counter += 1;
         format!("{}:{}", name, count)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::lexer::c_lexer;
+    use crate::parser::c_ast::ExprPool;
+    use crate::parser::c_parser::CParser;
+    use crate::semantic_analysis::SemanticAnalysis;
+
+    #[test]
+    fn test_postfix_chain_invalid_lvalue() {
+        // C code that should fail semantic analysis
+        let code = r#"
+            int main(void) {
+                int a = 10;
+                return a++--;
+            }
+        "#;
+
+        // Set up lexer
+        let mut lexer = c_lexer::Lexer::from_bytes(code.as_bytes());
+        let tokens = lexer.tokenize().unwrap();
+
+        // Set up parser and expression pool
+        let mut expr_pool = ExprPool::new();
+        let mut parser = CParser::new(&mut expr_pool, &tokens);
+
+        // Parse the program
+        let program = parser.parse_program().unwrap();
+
+        // Run semantic analysis
+        let mut semantic = SemanticAnalysis::new(&mut expr_pool);
+        let result = semantic.analyze_program(program);
+
+        // Assert that semantic analysis fails with "invalid lvalue"
+        assert!(result.is_err(), "Semantic analysis should fail for a++--");
+        let err = result.unwrap_err();
+        let msg = format!("{}", err);
+        assert!(
+            msg.contains("Invalid lvalue"),
+            "Error message should mention 'Invalid lvalue', got: {}",
+            msg
+        );
+    }
+
+    #[test]
+    fn test_postfix_incr_on_assignment_invalid_lvalue() {
+        let code = r#"
+            int main(void) {
+                int a = 0;
+                (a = 4)++;
+            }
+        "#;
+
+        // Set up lexer
+        let mut lexer = c_lexer::Lexer::from_bytes(code.as_bytes());
+        let tokens = lexer.tokenize().unwrap();
+
+        // Set up parser and expression pool
+        let mut expr_pool = ExprPool::new();
+        let mut parser = CParser::new(&mut expr_pool, &tokens);
+
+        // Parse the program
+        let program = parser.parse_program().unwrap();
+
+        let mut semantic = SemanticAnalysis::new(&mut expr_pool);
+        let result = semantic.analyze_program(program);
+
+        assert!(
+            result.is_err(),
+            "Semantic analysis should fail for (a = 4)++"
+        );
+        let err = result.unwrap_err();
+        let msg = format!("{}", err);
+        assert!(
+            msg.contains("Invalid lvalue"),
+            "Error message should mention 'Invalid lvalue', got: {}",
+            msg
+        );
     }
 }

@@ -1,20 +1,29 @@
-use std::io::{BufRead, Read};
+use std::io::BufRead;
 use std::{fs::File, io::BufReader, path::PathBuf};
 
 use crate::lexer::PATTERNS;
 use crate::lexer::token::{Token, TokenType};
 
-pub struct Lexer {
-    reader: BufReader<File>,
+pub struct Lexer<R: BufRead> {
+    reader: R,
 }
 
-impl Lexer {
-    pub fn new(file_path: &PathBuf) -> std::io::Result<Self> {
+impl Lexer<BufReader<File>> {
+    pub fn from_file(file_path: &PathBuf) -> std::io::Result<Self> {
         let file = File::open(file_path)?;
         let reader = BufReader::new(file);
         Ok(Self { reader })
     }
+}
 
+impl<'a> Lexer<BufReader<&'a [u8]>> {
+    pub fn from_bytes(bytes: &'a [u8]) -> Self {
+        let reader = BufReader::new(bytes);
+        Self { reader }
+    }
+}
+
+impl<R: BufRead> Lexer<R> {
     pub fn tokenize(&mut self) -> std::io::Result<Vec<Token>> {
         let mut tokens = Vec::new();
         for line in self.reader.by_ref().lines() {

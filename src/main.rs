@@ -74,7 +74,7 @@ fn main() -> std::io::Result<()> {
         return Err(std::io::Error::other("gcc preprocessing failed"));
     }
 
-    let mut lexer = Lexer::new(&preprocessed)?;
+    let mut lexer = Lexer::from_file(&preprocessed)?;
     let tokens = lexer.tokenize()?;
     log::debug!("Tokens: {:?}", tokens);
 

@@ -324,14 +324,15 @@ impl<'expr> CParser<'expr> {
             ))
         };
         log::debug!("Checking for postfix operations...");
-        self.parse_postfix_tokens(tokens_iter)?;
-        factor
+        self.parse_postfix_tokens(factor?, tokens_iter)
     }
 
     fn parse_postfix_tokens(
         &mut self,
+        factor: ExprRef,
         tokens_iter: &mut Peekable<Iter<'expr, Token>>,
-    ) -> std::io::Result<()> {
+    ) -> std::io::Result<ExprRef> {
+        let mut last_factor = factor;
         while let Some(next_token) = tokens_iter.peek() {
             match next_token.token_type {
                 t if t.is_postfix_op() => {
@@ -341,6 +342,7 @@ impl<'expr> CParser<'expr> {
                         "Parsed postfix expression: {}",
                         self.expr_pool.get_expr(expr_ref.id())
                     );
+                    last_factor = expr_ref;
                 }
                 t => {
                     log::debug!("No postfix operator found, continuing with token: {:?}", t);
@@ -348,7 +350,7 @@ impl<'expr> CParser<'expr> {
                 }
             }
         }
-        Ok(())
+        Ok(last_factor)
     }
 
     fn parse_unop(&self, token: &Token) -> std::io::Result<UnaryOperator> {
@@ -451,12 +453,17 @@ impl<'expr> CParser<'expr> {
     }
 
     fn parse_postfix_expression(&mut self, token_type: &TokenType) -> std::io::Result<ExprRef> {
+        let last_expression = self.expr_pool.last_expr()?;
+
         match token_type {
             TokenType::DoublePlus => {
-                log::debug!("Parsing postfix increment operator");
+                log::debug!(
+                    "Parsing postfix increment operator on last expr {:?}",
+                    last_expression.expr_type()
+                );
                 let last_exp = ExprRef::new(
-                    self.expr_pool.len().saturating_sub(1) as u32,
-                    ExprType::Unary,
+                    last_expression.id(),
+                    ExprType::Unary(UnaryOperator::PostfixIncr),
                 );
                 let expr_ref = self
                     .expr_pool
@@ -464,10 +471,13 @@ impl<'expr> CParser<'expr> {
                 Ok(expr_ref)
             }
             TokenType::DoubleHyphens => {
-                log::debug!("Parsing postfix decrement operator");
+                log::debug!(
+                    "Parsing postfix decrement operator on last expr {:?}",
+                    last_expression.expr_type()
+                );
                 let last_exp = ExprRef::new(
-                    self.expr_pool.len().saturating_sub(1) as u32,
-                    ExprType::Unary,
+                    last_expression.id(),
+                    ExprType::Unary(UnaryOperator::PostfixDecr),
                 );
                 let expr_ref = self
                     .expr_pool
