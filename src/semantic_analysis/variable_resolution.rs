@@ -68,7 +68,7 @@ impl<'expr> VariableResolver<'expr> {
         expr_ref: &crate::parser::c_ast::ExprRef,
     ) -> std::io::Result<ExprRef> {
         // Clone the expression out of the pool to avoid holding a borrow across recursion
-        let expr = self.expr_pool.get_expr(*expr_ref).clone();
+        let expr = self.expr_pool.get_expr(expr_ref.id()).clone();
         log::debug!("Resolving expr: {:?}", expr);
         match expr {
             crate::parser::c_ast::Expr::Var(Identifier::Name(var_name)) => {
@@ -86,7 +86,7 @@ impl<'expr> VariableResolver<'expr> {
             }
             crate::parser::c_ast::Expr::Assignment(left_ref, right_ref) => {
                 // Clone left expression out of the pool
-                let left = self.expr_pool.get_expr(left_ref).clone();
+                let left = self.expr_pool.get_expr(left_ref.id()).clone();
                 if !left.is_lvalue() {
                     return Err(std::io::Error::other(format!("Invalid lvalue: {}", left)));
                 }
@@ -104,7 +104,7 @@ impl<'expr> VariableResolver<'expr> {
             crate::parser::c_ast::Expr::Unary(unary_operator, inner_expr_ref) => {
                 log::debug!("Resolving Unary: {:?}", inner_expr_ref);
                 if unary_operator.is_lvalue_op() {
-                    let inner = self.expr_pool.get_expr(inner_expr_ref).clone();
+                    let inner = self.expr_pool.get_expr(inner_expr_ref.id()).clone();
                     if !inner.is_lvalue() {
                         return Err(std::io::Error::other(format!("Invalid lvalue: {}", inner)));
                     }

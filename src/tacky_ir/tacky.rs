@@ -64,7 +64,7 @@ impl<'expr> TackyGenerator<'expr> {
         expr_ref: &ExprRef,
         instructions: &mut Instructions,
     ) -> std::io::Result<Val> {
-        let expr = self.expr_pool.get_expr(*expr_ref);
+        let expr = self.expr_pool.get_expr(expr_ref.id());
         match expr {
             c_ast::Expr::Unary(operator, inner_expr_ref) => {
                 log::debug!("Emitting Unary expression: {:?}", expr);
@@ -131,7 +131,7 @@ impl<'expr> TackyGenerator<'expr> {
             c_ast::Expr::Constant(c) => Ok(Val::Constant(*c)),
             c_ast::Expr::Var(v) => Ok(Val::Var(Identifier::Name(v.name().to_string()))),
             c_ast::Expr::Assignment(var_ref, rhs) => {
-                let expr = self.expr_pool.get_expr(*var_ref);
+                let expr = self.expr_pool.get_expr(var_ref.id());
                 let var = Val::Var(Identifier::Name(expr.var()?));
                 let result = self.emit_tacky(rhs, instructions)?;
                 instructions.append(Instruction::Copy(result, var.clone()));
@@ -153,8 +153,12 @@ impl<'expr> TackyGenerator<'expr> {
             c_ast::UnaryOperator::Negate => tacky_ast::UnaryOperator::Negate,
             c_ast::UnaryOperator::Complement => tacky_ast::UnaryOperator::Complement,
             c_ast::UnaryOperator::Not => tacky_ast::UnaryOperator::Not,
-            c_ast::UnaryOperator::PrefixIncr | c_ast::UnaryOperator::PostfixIncr => tacky_ast::UnaryOperator::Increment,
-            c_ast::UnaryOperator::PrefixDecr | c_ast::UnaryOperator::PostfixDecr => tacky_ast::UnaryOperator::Decrement,
+            c_ast::UnaryOperator::PrefixIncr | c_ast::UnaryOperator::PostfixIncr => {
+                tacky_ast::UnaryOperator::Increment
+            }
+            c_ast::UnaryOperator::PrefixDecr | c_ast::UnaryOperator::PostfixDecr => {
+                tacky_ast::UnaryOperator::Decrement
+            }
         }
     }
 

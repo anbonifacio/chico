@@ -128,22 +128,28 @@ impl Declaration {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct ExprRef(u32);
+pub struct ExprRef {
+    id: u32,
+    expr_type: ExprType,
+}
 
 impl ExprRef {
-    pub fn new(id: u32) -> Self {
-        ExprRef(id)
+    pub fn new(id: u32, expr_type: ExprType) -> Self {
+        ExprRef { id, expr_type }
     }
 
     pub fn id(&self) -> u32 {
-        self.0
+        self.id
+    }
+
+    pub fn expr_type(&self) -> ExprType {
+        self.expr_type
     }
 }
 
 impl Display for ExprRef {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        // FIXME: how to get the real Expr from ExprPool for each index [0..self.0]?
-        write!(f, "ExprRef[{}]", self.0 + 1)
+        write!(f, "ExprRef[{:?}]", self.expr_type)
     }
 }
 
@@ -159,25 +165,43 @@ impl ExprPool {
         self.0.len()
     }
 
-    pub fn get_expr(&self, id: ExprRef) -> &Expr {
-        &self.0[id.0 as usize]
+    pub fn get_expr(&self, id: u32) -> &Expr {
+        &self.0[id as usize]
     }
 
     pub fn add_expr(&mut self, expr: Expr) -> ExprRef {
         let id = self.0.len() as u32;
-        self.0.push(expr);
-        ExprRef(id)
+        self.0.push(expr.clone());
+        ExprRef {
+            id,
+            expr_type: expr.get_type(),
+        }
     }
 
     pub fn update_expr(&mut self, id: &ExprRef, expr: Expr) {
-        self.0[id.0 as usize] = expr;
+        self.0[id.id as usize] = expr;
     }
 
     pub(crate) fn last_expr(&self) -> std::io::Result<ExprRef> {
-        self.0.len().saturating_sub(1).try_into().map(ExprRef).map_err(|_| {
-            std::io::Error::other("Expression pool is empty, cannot get last expression")
-        })
+        match self.0.iter().enumerate().next_back() {
+            Some((idx, expr)) => Ok(ExprRef {
+                id: idx as u32,
+                expr_type: expr.get_type(),
+            }),
+            None => Err(std::io::Error::other(
+                "Expression pool is empty, cannot get last expression",
+            )),
+        }
     }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum ExprType {
+    Constant,
+    Var,
+    Unary,
+    Binary,
+    Assignment,
 }
 
 #[derive(Debug, Clone)]
@@ -198,6 +222,16 @@ impl Expr {
         match self {
             Expr::Var(identifier) => Ok(identifier.name().to_string()),
             _ => Err(std::io::Error::other("Not a variable")),
+        }
+    }
+
+    pub fn get_type(&self) -> ExprType {
+        match self {
+            Expr::Constant(_) => ExprType::Constant,
+            Expr::Var(_) => ExprType::Var,
+            Expr::Unary(_, _) => ExprType::Unary,
+            Expr::Binary(_, _, _) => ExprType::Binary,
+            Expr::Assignment(_, _) => ExprType::Assignment,
         }
     }
 }

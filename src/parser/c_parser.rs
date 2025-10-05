@@ -94,7 +94,7 @@ impl<'expr> CParser<'expr> {
                     let expr = self.parse_expression(tokens_iter, 0)?;
                     log::debug!(
                         "Parsed initializer expression: {}",
-                        self.expr_pool.get_expr(expr)
+                        self.expr_pool.get_expr(expr.id())
                     );
                     Some(expr)
                 }
@@ -185,7 +185,7 @@ impl<'expr> CParser<'expr> {
         min_prec: u8,
     ) -> std::io::Result<ExprRef> {
         let mut left = self.parse_factor(tokens_iter)?;
-        log::debug!("Parsed left factor: {}", self.expr_pool.get_expr(left));
+        log::debug!("Parsed left factor: {}", self.expr_pool.get_expr(left.id()));
         if let Some(mut next_token) = tokens_iter.peek() {
             loop {
                 let next_prec = next_token.token_type.precedence();
@@ -206,18 +206,20 @@ impl<'expr> CParser<'expr> {
                                         self.parse_expression(tokens_iter, next_prec + 1)?;
                                     log::debug!(
                                         "Parsed right factor: {}",
-                                        self.expr_pool.get_expr(right)
+                                        self.expr_pool.get_expr(right.id())
                                     );
-                                    left =
-                                        self.expr_pool.add_expr(Expr::Assignment(left, right));
+                                    left = self.expr_pool.add_expr(Expr::Assignment(left, right));
                                 }
                                 None => {
                                     // This is a simple assignment (=)
-                                    log::debug!("Parsing simple assignment operator: {:?}", operator);
+                                    log::debug!(
+                                        "Parsing simple assignment operator: {:?}",
+                                        operator
+                                    );
                                     let right = self.parse_expression(tokens_iter, next_prec)?;
                                     log::debug!(
                                         "Parsed right factor: {}",
-                                        self.expr_pool.get_expr(right)
+                                        self.expr_pool.get_expr(right.id())
                                     );
                                     left = self.expr_pool.add_expr(Expr::Assignment(left, right));
                                 }
@@ -227,7 +229,10 @@ impl<'expr> CParser<'expr> {
                             let operator = self.parse_binop(tokens_iter)?;
                             log::debug!("Parsed binary operator: {:?}", operator);
                             let right = self.parse_expression(tokens_iter, next_prec + 1)?;
-                            log::debug!("Parsed right factor: {}", self.expr_pool.get_expr(right));
+                            log::debug!(
+                                "Parsed right factor: {}",
+                                self.expr_pool.get_expr(right.id())
+                            );
                             left = self.expr_pool.add_expr(Expr::Binary(operator, left, right));
                         }
                     }
@@ -241,7 +246,10 @@ impl<'expr> CParser<'expr> {
                     break;
                 }
             }
-            log::debug!("Return expression: {:?}", self.expr_pool.get_expr(left));
+            log::debug!(
+                "Return expression: {:?}",
+                self.expr_pool.get_expr(left.id())
+            );
             Ok(left)
         } else {
             Err(std::io::Error::new(
@@ -266,7 +274,10 @@ impl<'expr> CParser<'expr> {
                     let expr_ref = self
                         .expr_pool
                         .add_expr(Expr::Constant(self.parse_as_i32(token)?));
-                    log::debug!("Parsed constant: {}", self.expr_pool.get_expr(expr_ref));
+                    log::debug!(
+                        "Parsed constant: {}",
+                        self.expr_pool.get_expr(expr_ref.id())
+                    );
                     Ok(expr_ref)
                 }
                 t if t.is_unop() => {
@@ -276,7 +287,7 @@ impl<'expr> CParser<'expr> {
                     let expr_ref = self.expr_pool.add_expr(Expr::Unary(operator, inner_expr));
                     log::debug!(
                         "Parsed unary expression: {}",
-                        self.expr_pool.get_expr(expr_ref)
+                        self.expr_pool.get_expr(expr_ref.id())
                     );
                     Ok(expr_ref)
                 }
@@ -286,7 +297,7 @@ impl<'expr> CParser<'expr> {
                     self.expect(TokenType::CloseParenthesis, tokens_iter)?;
                     log::debug!(
                         "Parsed parenthesized expression: ({})",
-                        self.expr_pool.get_expr(expr_ref)
+                        self.expr_pool.get_expr(expr_ref.id())
                     );
                     Ok(expr_ref)
                 }
@@ -295,7 +306,7 @@ impl<'expr> CParser<'expr> {
                     let expr_ref = self.expr_pool.add_expr(Expr::Var(var));
                     log::debug!(
                         "Parsed Var expression: {}",
-                        self.expr_pool.get_expr(expr_ref)
+                        self.expr_pool.get_expr(expr_ref.id())
                     );
                     Ok(expr_ref)
                 }
@@ -322,7 +333,7 @@ impl<'expr> CParser<'expr> {
         &mut self,
         tokens_iter: &mut Peekable<Iter<'expr, Token>>,
     ) -> Result<(), std::io::Error> {
-        Ok(loop {
+        let _: () = loop {
             if let Some(next_token) = tokens_iter.peek() {
                 match next_token.token_type {
                     t if t.is_postfix_op() => {
@@ -330,7 +341,7 @@ impl<'expr> CParser<'expr> {
                         let expr_ref = self.parse_postfix_expression(&token.token_type)?;
                         log::debug!(
                             "Parsed postfix expression: {}",
-                            self.expr_pool.get_expr(expr_ref)
+                            self.expr_pool.get_expr(expr_ref.id())
                         );
                     }
                     t => {
@@ -341,7 +352,8 @@ impl<'expr> CParser<'expr> {
             } else {
                 break;
             }
-        })
+        };
+        Ok(())
     }
 
     fn parse_unop(&self, token: &Token) -> std::io::Result<UnaryOperator> {
@@ -444,23 +456,34 @@ impl<'expr> CParser<'expr> {
     }
 
     fn parse_postfix_expression(&mut self, token_type: &TokenType) -> std::io::Result<ExprRef> {
-        let last_exp = ExprRef::new(self.expr_pool.len().saturating_sub(1) as u32);
         match token_type {
             TokenType::DoublePlus => {
                 log::debug!("Parsing postfix increment operator");
-                let expr_ref = self.expr_pool.add_expr(Expr::Unary(UnaryOperator::PostfixIncr, last_exp));
+                let last_exp = ExprRef::new(
+                    self.expr_pool.len().saturating_sub(1) as u32,
+                    ExprType::Unary,
+                );
+                let expr_ref = self
+                    .expr_pool
+                    .add_expr(Expr::Unary(UnaryOperator::PostfixIncr, last_exp));
                 Ok(expr_ref)
             }
             TokenType::DoubleHyphens => {
                 log::debug!("Parsing postfix decrement operator");
-                let expr_ref = self.expr_pool.add_expr(Expr::Unary(UnaryOperator::PostfixDecr, last_exp));
+                let last_exp = ExprRef::new(
+                    self.expr_pool.len().saturating_sub(1) as u32,
+                    ExprType::Unary,
+                );
+                let expr_ref = self
+                    .expr_pool
+                    .add_expr(Expr::Unary(UnaryOperator::PostfixDecr, last_exp));
                 Ok(expr_ref)
             }
             _ => {
-                return Err(std::io::Error::new(
+                Err(std::io::Error::new(
                     std::io::ErrorKind::InvalidInput,
                     format!("Expected postfix operator, found {:?}", token_type),
-                ));
+                ))
             }
         }
     }
@@ -471,7 +494,7 @@ mod tests {
     use crate::{
         lexer::token::{Token, TokenType},
         parser::{
-            c_ast::{Expr, ExprPool, ExprRef, Statement, UnaryOperator},
+            c_ast::{Expr, ExprPool, Statement, UnaryOperator},
             c_parser::CParser,
         },
     };
@@ -488,17 +511,11 @@ mod tests {
         let res = parser
             .parse_statement(&mut tokens.iter().peekable())
             .unwrap();
-        assert!(matches!(
-            res,
-            Statement::Expression(_)
-        ));
+        assert!(matches!(res, Statement::Expression(_)));
         assert_eq!(pool.len(), 2);
+        assert!(matches!(pool.get_expr(0), Expr::Var(_)));
         assert!(matches!(
-            pool.get_expr(ExprRef::new(0)),
-            Expr::Var(_)
-        ));
-        assert!(matches!(
-            pool.get_expr(ExprRef::new(1)),
+            pool.get_expr(1),
             Expr::Unary(UnaryOperator::PrefixIncr, _)
         ));
     }
@@ -520,15 +537,15 @@ mod tests {
             crate::parser::c_ast::Statement::Expression(_)
         ));
         println!("ExprPool: {:?}", pool);
-        println!("First Expr: {:?}", pool.get_expr(ExprRef::new(0)));
-        println!("Second Expr: {:?}", pool.get_expr(ExprRef::new(1)));
+        println!("First Expr: {:?}", pool.get_expr(0));
+        println!("Second Expr: {:?}", pool.get_expr(1));
         assert_eq!(pool.len(), 2);
         assert!(matches!(
-            pool.get_expr(ExprRef::new(0)),
+            pool.get_expr(0),
             crate::parser::c_ast::Expr::Var(_)
         ));
         assert!(matches!(
-            pool.get_expr(ExprRef::new(1)),
+            pool.get_expr(1),
             crate::parser::c_ast::Expr::Unary(UnaryOperator::PostfixIncr, _)
         ));
     }
@@ -551,15 +568,15 @@ mod tests {
         println!("ExprPool: {:?}", pool);
         assert_eq!(pool.len(), 3);
         assert!(matches!(
-            pool.get_expr(ExprRef::new(0)),
+            pool.get_expr(0),
             crate::parser::c_ast::Expr::Var(_)
         ));
         assert!(matches!(
-            pool.get_expr(ExprRef::new(1)),
+            pool.get_expr(1),
             Expr::Unary(UnaryOperator::PostfixIncr, _)
         ));
         assert!(matches!(
-            pool.get_expr(ExprRef::new(2)),
+            pool.get_expr(2),
             Expr::Unary(UnaryOperator::PostfixDecr, _)
         ));
     }
