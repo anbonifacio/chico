@@ -149,7 +149,7 @@ impl ExprRef {
 
 impl Display for ExprRef {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "ExprRef[{:?}]", self.expr_type)
+        write!(f, "ExprRef[{}: {:?}]", self.id, self.expr_type)
     }
 }
 
@@ -195,7 +195,7 @@ impl ExprPool {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ExprType {
     Constant,
     Var,
@@ -215,7 +215,7 @@ pub enum Expr {
 
 impl Expr {
     pub fn is_lvalue(&self) -> bool {
-        matches!(self, Expr::Var(_) | Expr::Assignment(_, _))
+        matches!(self, Expr::Var(_))
     }
 
     pub fn var(&self) -> std::io::Result<String> {

@@ -202,8 +202,7 @@ impl<'expr> CParser<'expr> {
                                         "Parsing compound assignment operator: {:?}",
                                         compound_op
                                     );
-                                    let right =
-                                        self.parse_expression(tokens_iter, next_prec + 1)?;
+                                    let right = self.parse_expression(tokens_iter, next_prec)?;
                                     log::debug!(
                                         "Parsed right factor: {}",
                                         self.expr_pool.get_expr(right.id())
@@ -332,27 +331,23 @@ impl<'expr> CParser<'expr> {
     fn parse_postfix_tokens(
         &mut self,
         tokens_iter: &mut Peekable<Iter<'expr, Token>>,
-    ) -> Result<(), std::io::Error> {
-        let _: () = loop {
-            if let Some(next_token) = tokens_iter.peek() {
-                match next_token.token_type {
-                    t if t.is_postfix_op() => {
-                        let token = self.extract_token(tokens_iter)?;
-                        let expr_ref = self.parse_postfix_expression(&token.token_type)?;
-                        log::debug!(
-                            "Parsed postfix expression: {}",
-                            self.expr_pool.get_expr(expr_ref.id())
-                        );
-                    }
-                    t => {
-                        log::debug!("No postfix operator found, continuing with token: {:?}", t);
-                        break;
-                    }
+    ) -> std::io::Result<()> {
+        while let Some(next_token) = tokens_iter.peek() {
+            match next_token.token_type {
+                t if t.is_postfix_op() => {
+                    let token = self.extract_token(tokens_iter)?;
+                    let expr_ref = self.parse_postfix_expression(&token.token_type)?;
+                    log::debug!(
+                        "Parsed postfix expression: {}",
+                        self.expr_pool.get_expr(expr_ref.id())
+                    );
                 }
-            } else {
-                break;
+                t => {
+                    log::debug!("No postfix operator found, continuing with token: {:?}", t);
+                    break;
+                }
             }
-        };
+        }
         Ok(())
     }
 
@@ -479,12 +474,10 @@ impl<'expr> CParser<'expr> {
                     .add_expr(Expr::Unary(UnaryOperator::PostfixDecr, last_exp));
                 Ok(expr_ref)
             }
-            _ => {
-                Err(std::io::Error::new(
-                    std::io::ErrorKind::InvalidInput,
-                    format!("Expected postfix operator, found {:?}", token_type),
-                ))
-            }
+            _ => Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                format!("Expected postfix operator, found {:?}", token_type),
+            )),
         }
     }
 }

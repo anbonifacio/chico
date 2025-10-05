@@ -88,7 +88,11 @@ impl<'expr> VariableResolver<'expr> {
                 // Clone left expression out of the pool
                 let left = self.expr_pool.get_expr(left_ref.id()).clone();
                 if !left.is_lvalue() {
-                    return Err(std::io::Error::other(format!("Invalid lvalue: {}", left)));
+                    return Err(std::io::Error::other(format!(
+                        "Invalid lvalue: {:?}[{}]",
+                        left.get_type(),
+                        left
+                    )));
                 }
                 let new_left = self.resolve_exp(&left_ref)?;
                 let new_right = self.resolve_exp(&right_ref)?;
@@ -106,7 +110,11 @@ impl<'expr> VariableResolver<'expr> {
                 if unary_operator.is_lvalue_op() {
                     let inner = self.expr_pool.get_expr(inner_expr_ref.id()).clone();
                     if !inner.is_lvalue() {
-                        return Err(std::io::Error::other(format!("Invalid lvalue: {}", inner)));
+                        return Err(std::io::Error::other(format!(
+                            "Invalid lvalue: {:?}[{}]",
+                            inner.get_type(),
+                            inner
+                        )));
                     }
                 }
                 let new_inner = self.resolve_exp(&inner_expr_ref)?;
