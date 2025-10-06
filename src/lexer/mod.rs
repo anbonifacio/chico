@@ -50,6 +50,10 @@ static ASSIGN_OR: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\|=").unwrap()
 static ASSIGN_XOR: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\^=").unwrap());
 static ASSIGN_LEFT_SHIFT: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"<<=").unwrap());
 static ASSIGN_RIGHT_SHIFT: LazyLock<Regex> = LazyLock::new(|| Regex::new(r">>=").unwrap());
+static IF: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"if\b").unwrap());
+static ELSE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"else\b").unwrap());
+static QUESTION_MARK: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\?").unwrap());
+static COLON: LazyLock<Regex> = LazyLock::new(|| Regex::new(r":").unwrap());
 
 static PATTERNS: LazyLock<Vec<(&Regex, TokenType)>> = LazyLock::new(|| {
     vec![
@@ -96,5 +100,9 @@ static PATTERNS: LazyLock<Vec<(&Regex, TokenType)>> = LazyLock::new(|| {
         (&*ASSIGN_XOR, TokenType::AssignXor),
         (&*ASSIGN_LEFT_SHIFT, TokenType::AssignLeftShift),
         (&*ASSIGN_RIGHT_SHIFT, TokenType::AssignRightShift),
+        (&*IF, TokenType::IfKeyword),
+        (&*ELSE, TokenType::ElseKeyword),
+        (&*QUESTION_MARK, TokenType::QuestionMark),
+        (&*COLON, TokenType::Colon),
     ]
 });
