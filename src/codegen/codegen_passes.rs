@@ -4,8 +4,7 @@ use std::hint::unreachable_unchecked;
 use crate::codegen::asm_ast::*;
 use crate::tacky_ir::tacky_ast;
 use crate::tacky_ir::tacky_ast::BinaryOperator::{
-    AssignDiv, AssignMod, Divide, Equal, GreaterOrEqual, GreaterThan, LessOrEqual, LessThan,
-    NotEqual, Remainder,
+    Divide, Equal, GreaterOrEqual, GreaterThan, LessOrEqual, LessThan, NotEqual, Remainder,
 };
 use crate::tacky_ir::tacky_ast::{Instructions, TackyIR};
 
@@ -136,7 +135,7 @@ impl Codegen {
             tacky_ast::Instruction::Binary(LessOrEqual, src1, src2, dst) => {
                 self.generate_relational_operator(asm_instructions, CondCode::LE, src1, src2, dst)?;
             }
-            tacky_ast::Instruction::Binary(Divide | AssignDiv, src1, src2, dst) => {
+            tacky_ast::Instruction::Binary(Divide, src1, src2, dst) => {
                 let src1 = if let Ok(src) = src1.var() {
                     Operand::Pseudo(Identifier::Name(src))
                 } else {
@@ -158,7 +157,7 @@ impl Codegen {
                     Operand::Pseudo(Identifier::Name(dst.var()?)),
                 ));
             }
-            tacky_ast::Instruction::Binary(Remainder | AssignMod, src1, src2, dst) => {
+            tacky_ast::Instruction::Binary(Remainder, src1, src2, dst) => {
                 let src1 = if let Ok(src) = src1.var() {
                     Operand::Pseudo(Identifier::Name(src))
                 } else {
@@ -208,14 +207,6 @@ impl Codegen {
                     tacky_ast::BinaryOperator::BitwiseXor => BinaryOperator::BitwiseXor,
                     tacky_ast::BinaryOperator::LeftShift => BinaryOperator::LeftShift,
                     tacky_ast::BinaryOperator::RightShift => BinaryOperator::RightShift,
-                    tacky_ast::BinaryOperator::AssignAnd => BinaryOperator::BitwiseAnd,
-                    tacky_ast::BinaryOperator::AssignOr => BinaryOperator::BitwiseOr,
-                    tacky_ast::BinaryOperator::AssignXor => BinaryOperator::BitwiseXor,
-                    tacky_ast::BinaryOperator::AssignLeftShift => BinaryOperator::LeftShift,
-                    tacky_ast::BinaryOperator::AssignRightShift => BinaryOperator::RightShift,
-                    tacky_ast::BinaryOperator::AssignPlus => BinaryOperator::Add,
-                    tacky_ast::BinaryOperator::AssignMinus => BinaryOperator::Sub,
-                    tacky_ast::BinaryOperator::AssignMult => BinaryOperator::Mult,
                     _ => unsafe {
                         // Safety: Other operators are already matched on their own
                         unreachable_unchecked()

@@ -174,16 +174,6 @@ pub enum BinaryOperator {
     GreaterThan,
     GreaterOrEqual,
     Assign,
-    AssignPlus,
-    AssignMinus,
-    AssignMult,
-    AssignDiv,
-    AssignMod,
-    AssignAnd,
-    AssignOr,
-    AssignXor,
-    AssignLeftShift,
-    AssignRightShift,
 }
 
 impl Display for BinaryOperator {
