@@ -319,11 +319,10 @@ pub enum BinaryOperator {
 }
 
 impl BinaryOperator {
-    pub fn is_assignment(&self) -> bool {
+    pub fn is_compound_assignment(&self) -> bool {
         matches!(
             self,
-            BinaryOperator::Assign
-                | BinaryOperator::AssignPlus
+            BinaryOperator::AssignPlus
                 | BinaryOperator::AssignMinus
                 | BinaryOperator::AssignMult
                 | BinaryOperator::AssignDiv
@@ -338,16 +337,16 @@ impl BinaryOperator {
 
     pub fn get_compound_operator(&self) -> Option<BinaryOperator> {
         match self {
-            BinaryOperator::AssignPlus => Some(BinaryOperator::Add),
-            BinaryOperator::AssignMinus => Some(BinaryOperator::Subtract),
-            BinaryOperator::AssignMult => Some(BinaryOperator::Multiply),
-            BinaryOperator::AssignDiv => Some(BinaryOperator::Divide),
-            BinaryOperator::AssignMod => Some(BinaryOperator::Remainder),
-            BinaryOperator::AssignAnd => Some(BinaryOperator::BitwiseAnd),
-            BinaryOperator::AssignOr => Some(BinaryOperator::BitwiseOr),
-            BinaryOperator::AssignXor => Some(BinaryOperator::BitwiseXor),
-            BinaryOperator::AssignLeftShift => Some(BinaryOperator::LeftShift),
-            BinaryOperator::AssignRightShift => Some(BinaryOperator::RightShift),
+            BinaryOperator::AssignPlus => Some(BinaryOperator::AssignPlus),
+            BinaryOperator::AssignMinus => Some(BinaryOperator::AssignMinus),
+            BinaryOperator::AssignMult => Some(BinaryOperator::AssignMult),
+            BinaryOperator::AssignDiv => Some(BinaryOperator::AssignDiv),
+            BinaryOperator::AssignMod => Some(BinaryOperator::AssignMod),
+            BinaryOperator::AssignAnd => Some(BinaryOperator::AssignAnd),
+            BinaryOperator::AssignOr => Some(BinaryOperator::AssignOr),
+            BinaryOperator::AssignXor => Some(BinaryOperator::AssignXor),
+            BinaryOperator::AssignLeftShift => Some(BinaryOperator::AssignLeftShift),
+            BinaryOperator::AssignRightShift => Some(BinaryOperator::AssignRightShift),
             _ => None,
         }
     }

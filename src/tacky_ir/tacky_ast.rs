@@ -142,8 +142,6 @@ pub enum UnaryOperator {
     Complement,
     Negate,
     Not,
-    Increment,
-    Decrement,
 }
 
 impl Display for UnaryOperator {
@@ -152,8 +150,6 @@ impl Display for UnaryOperator {
             UnaryOperator::Complement => write!(f, "'~'"),
             UnaryOperator::Negate => write!(f, "'-'"),
             UnaryOperator::Not => write!(f, "'!'"),
-            UnaryOperator::Increment => write!(f, "'++'"),
-            UnaryOperator::Decrement => write!(f, "'--'"),
         }
     }
 }

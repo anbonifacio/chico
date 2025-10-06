@@ -207,7 +207,11 @@ impl<'expr> CParser<'expr> {
                                         "Parsed right factor: {}",
                                         self.expr_pool.get_expr(right.id())
                                     );
-                                    left = self.expr_pool.add_expr(Expr::Assignment(left, right));
+                                    left = self.expr_pool.add_expr(Expr::Binary(
+                                        compound_op,
+                                        left,
+                                        right,
+                                    ));
                                 }
                                 None => {
                                     // This is a simple assignment (=)
