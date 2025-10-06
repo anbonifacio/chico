@@ -198,16 +198,6 @@ impl Display for BinaryOperator {
             BinaryOperator::GreaterThan => write!(f, "'>'"),
             BinaryOperator::GreaterOrEqual => write!(f, "'>='"),
             BinaryOperator::Assign => write!(f, "'='"),
-            BinaryOperator::AssignPlus => write!(f, "'+='"),
-            BinaryOperator::AssignMinus => write!(f, "'-='"),
-            BinaryOperator::AssignMult => write!(f, "'*='"),
-            BinaryOperator::AssignDiv => write!(f, "'/='"),
-            BinaryOperator::AssignMod => write!(f, "'%='"),
-            BinaryOperator::AssignAnd => write!(f, "'&='"),
-            BinaryOperator::AssignOr => write!(f, "'|='"),
-            BinaryOperator::AssignXor => write!(f, "'^='"),
-            BinaryOperator::AssignLeftShift => write!(f, "'<<='"),
-            BinaryOperator::AssignRightShift => write!(f, "'>>='"),
         }
     }
 }
