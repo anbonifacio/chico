@@ -43,6 +43,10 @@ pub enum TokenType {
     AssignXor,
     AssignLeftShift,
     AssignRightShift,
+    IfKeyword,
+    ElseKeyword,
+    QuestionMark,
+    Colon,
 }
 
 impl TokenType {
