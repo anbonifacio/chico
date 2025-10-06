@@ -40,16 +40,16 @@ static GREATER_THAN: LazyLock<Regex> = LazyLock::new(|| Regex::new(r">").unwrap(
 static LESS_OR_EQ: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"<=").unwrap());
 static GREATER_OR_EQ: LazyLock<Regex> = LazyLock::new(|| Regex::new(r">=").unwrap());
 static ASSIGN: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"=").unwrap());
-static ASSIGN_PLUS: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?:\+=)").unwrap());
-static ASSIGN_MINUS: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?:-=)").unwrap());
-static ASSIGN_MULT: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?:\*=)").unwrap());
-static ASSIGN_DIV: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?:/=)").unwrap());
-static ASSIGN_MOD: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?:%=)").unwrap());
-static ASSIGN_AND: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?:&=)").unwrap());
-static ASSIGN_OR: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?:\|=)").unwrap());
-static ASSIGN_XOR: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?:\^=)").unwrap());
-static ASSIGN_LEFT_SHIFT: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?:<<=)").unwrap());
-static ASSIGN_RIGHT_SHIFT: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?:>>=)").unwrap());
+static ASSIGN_PLUS: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\+=").unwrap());
+static ASSIGN_MINUS: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"-=").unwrap());
+static ASSIGN_MULT: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\*=").unwrap());
+static ASSIGN_DIV: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"/=").unwrap());
+static ASSIGN_MOD: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"%=").unwrap());
+static ASSIGN_AND: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"&=").unwrap());
+static ASSIGN_OR: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\|=").unwrap());
+static ASSIGN_XOR: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\^=").unwrap());
+static ASSIGN_LEFT_SHIFT: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"<<=").unwrap());
+static ASSIGN_RIGHT_SHIFT: LazyLock<Regex> = LazyLock::new(|| Regex::new(r">>=").unwrap());
 
 static PATTERNS: LazyLock<Vec<(&Regex, TokenType)>> = LazyLock::new(|| {
     vec![
