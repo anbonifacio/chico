@@ -64,14 +64,78 @@ impl<'expr> TackyGenerator<'expr> {
         expr_ref: &ExprRef,
         instructions: &mut Instructions,
     ) -> std::io::Result<Val> {
-        let expr = self.expr_pool.get_expr(*expr_ref);
+        let expr = self.expr_pool.get_expr(expr_ref.id());
         match expr {
+            c_ast::Expr::Unary(c_ast::UnaryOperator::PrefixIncr, inner_expr_ref) => {
+                // Prefix increment: ++a
+                log::debug!("Emitting PrefixIncr expression: {:?}", expr);
+                let v1 = self.emit_tacky(inner_expr_ref, instructions)?;
+                let v2 = Val::Constant(1);
+                instructions.append(Instruction::Binary(
+                    BinaryOperator::Add,
+                    v1.clone(),
+                    v2,
+                    v1.clone(),
+                ));
+                Ok(v1)
+            }
+            c_ast::Expr::Unary(c_ast::UnaryOperator::PostfixIncr, inner_expr_ref) => {
+                log::debug!("Emitting PostfixIncr expression: {:?}", expr);
+                // Postfix increment: a++
+                let v1 = self.emit_tacky(inner_expr_ref, instructions)?;
+                let v2 = Val::Constant(1);
+                let tmp_name = self.make_temporary(inner_expr_ref);
+                let tmp = Val::Var(Identifier::Name(tmp_name.clone()));
+                // Save original value
+                instructions.append(Instruction::Copy(v1.clone(), tmp.clone()));
+                // Increment variable
+                instructions.append(Instruction::Binary(
+                    BinaryOperator::Add,
+                    v1.clone(),
+                    v2,
+                    v1.clone(),
+                ));
+                // Return original value
+                Ok(tmp)
+            }
+            c_ast::Expr::Unary(c_ast::UnaryOperator::PrefixDecr, inner_expr_ref) => {
+                // Prefix decrement: --a
+                log::debug!("Emitting PrefixDecr expression: {:?}", expr);
+                let v1 = self.emit_tacky(inner_expr_ref, instructions)?;
+                let v2 = Val::Constant(1);
+                instructions.append(Instruction::Binary(
+                    BinaryOperator::Subtract,
+                    v1.clone(),
+                    v2,
+                    v1.clone(),
+                ));
+                Ok(v1)
+            }
+            c_ast::Expr::Unary(c_ast::UnaryOperator::PostfixDecr, inner_expr_ref) => {
+                log::debug!("Emitting PostfixDecr expression: {:?}", expr);
+                // Postfix decrement: a--
+                let v1 = self.emit_tacky(inner_expr_ref, instructions)?;
+                let v2 = Val::Constant(1);
+                let tmp_name = self.make_temporary(inner_expr_ref);
+                let tmp = Val::Var(Identifier::Name(tmp_name.clone()));
+                // Save original value
+                instructions.append(Instruction::Copy(v1.clone(), tmp.clone()));
+                // Decrement variable
+                instructions.append(Instruction::Binary(
+                    BinaryOperator::Subtract,
+                    v1.clone(),
+                    v2,
+                    v1.clone(),
+                ));
+                // Return original value
+                Ok(tmp)
+            }
             c_ast::Expr::Unary(operator, inner_expr_ref) => {
                 log::debug!("Emitting Unary expression: {:?}", expr);
                 let src = self.emit_tacky(inner_expr_ref, instructions)?;
                 let dst_name = self.make_temporary(inner_expr_ref);
                 let dst = Val::Var(Identifier::Name(dst_name.clone()));
-                let tacky_op = self.convert_unop(operator);
+                let tacky_op = self.convert_unop(operator)?;
                 instructions.append(Instruction::Unary(tacky_op, src, dst.clone()));
                 Ok(dst)
             }
@@ -119,7 +183,24 @@ impl<'expr> TackyGenerator<'expr> {
                 instructions.append(Instruction::Label(Identifier::Name(end_label)));
                 Ok(dst)
             }
+            // Handle compound assignments
+            c_ast::Expr::Binary(operator, var_ref, rhs) if operator.is_compound_assignment() => {
+                log::debug!("Emitting compound assignment expression: {:?}", expr);
+                let expr = self.expr_pool.get_expr(var_ref.id());
+                let var = Val::Var(Identifier::Name(expr.var()?));
+                let result = self.emit_tacky(rhs, instructions)?;
+                let bin_op = self.convert_binop(operator);
+                // Perform the binary operation and store the result back in the variable
+                instructions.append(Instruction::Binary(
+                    bin_op,
+                    var.clone(),
+                    result,
+                    var.clone(),
+                ));
+                Ok(var)
+            }
             c_ast::Expr::Binary(operator, left, right) => {
+                log::debug!("Emitting binary expression: {:?}", expr);
                 let v1 = self.emit_tacky(left, instructions)?;
                 let v2 = self.emit_tacky(right, instructions)?;
                 let dst_name = self.make_temporary(left);
@@ -131,7 +212,7 @@ impl<'expr> TackyGenerator<'expr> {
             c_ast::Expr::Constant(c) => Ok(Val::Constant(*c)),
             c_ast::Expr::Var(v) => Ok(Val::Var(Identifier::Name(v.name().to_string()))),
             c_ast::Expr::Assignment(var_ref, rhs) => {
-                let expr = self.expr_pool.get_expr(*var_ref);
+                let expr = self.expr_pool.get_expr(var_ref.id());
                 let var = Val::Var(Identifier::Name(expr.var()?));
                 let result = self.emit_tacky(rhs, instructions)?;
                 instructions.append(Instruction::Copy(result, var.clone()));
@@ -148,11 +229,26 @@ impl<'expr> TackyGenerator<'expr> {
         format!("{}{}", label, expr_ref.id())
     }
 
-    fn convert_unop(&self, operator: &c_ast::UnaryOperator) -> tacky_ast::UnaryOperator {
+    fn convert_unop(
+        &self,
+        operator: &c_ast::UnaryOperator,
+    ) -> std::io::Result<tacky_ast::UnaryOperator> {
         match operator {
-            c_ast::UnaryOperator::Negate => tacky_ast::UnaryOperator::Negate,
-            c_ast::UnaryOperator::Complement => tacky_ast::UnaryOperator::Complement,
-            c_ast::UnaryOperator::Not => tacky_ast::UnaryOperator::Not,
+            c_ast::UnaryOperator::Negate => Ok(tacky_ast::UnaryOperator::Negate),
+            c_ast::UnaryOperator::Complement => Ok(tacky_ast::UnaryOperator::Complement),
+            c_ast::UnaryOperator::Not => Ok(tacky_ast::UnaryOperator::Not),
+            c_ast::UnaryOperator::PrefixIncr | c_ast::UnaryOperator::PostfixIncr => {
+                Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidInput,
+                    "Increment operators should be handled as Binary operators",
+                ))
+            }
+            c_ast::UnaryOperator::PrefixDecr | c_ast::UnaryOperator::PostfixDecr => {
+                Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidInput,
+                    "Decrement operators should be handled as Binary operators",
+                ))
+            }
         }
     }
 
@@ -176,6 +272,17 @@ impl<'expr> TackyGenerator<'expr> {
             c_ast::BinaryOperator::LessOrEqual => BinaryOperator::LessOrEqual,
             c_ast::BinaryOperator::GreaterThan => BinaryOperator::GreaterThan,
             c_ast::BinaryOperator::GreaterOrEqual => BinaryOperator::GreaterOrEqual,
+            c_ast::BinaryOperator::Assign => BinaryOperator::Assign,
+            c_ast::BinaryOperator::AssignPlus => BinaryOperator::Add,
+            c_ast::BinaryOperator::AssignMinus => BinaryOperator::Subtract,
+            c_ast::BinaryOperator::AssignMult => BinaryOperator::Multiply,
+            c_ast::BinaryOperator::AssignDiv => BinaryOperator::Divide,
+            c_ast::BinaryOperator::AssignMod => BinaryOperator::Remainder,
+            c_ast::BinaryOperator::AssignAnd => BinaryOperator::BitwiseAnd,
+            c_ast::BinaryOperator::AssignOr => BinaryOperator::BitwiseOr,
+            c_ast::BinaryOperator::AssignXor => BinaryOperator::BitwiseXor,
+            c_ast::BinaryOperator::AssignLeftShift => BinaryOperator::LeftShift,
+            c_ast::BinaryOperator::AssignRightShift => BinaryOperator::RightShift,
         }
     }
 }

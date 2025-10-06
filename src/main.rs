@@ -74,7 +74,7 @@ fn main() -> std::io::Result<()> {
         return Err(std::io::Error::other("gcc preprocessing failed"));
     }
 
-    let mut lexer = Lexer::new(&preprocessed)?;
+    let mut lexer = Lexer::from_file(&preprocessed)?;
     let tokens = lexer.tokenize()?;
     log::debug!("Tokens: {:?}", tokens);
 
@@ -88,6 +88,7 @@ fn main() -> std::io::Result<()> {
     let mut parser = CParser::new(&mut expr_pool, &tokens);
     let c_program = parser.parse_program()?;
     log::debug!("{}", c_program);
+    log::debug!("Expression Pool: {:?}", expr_pool);
 
     if stage == Stage::Parse {
         cleanup(&cli, &stage, &preprocessed, &assembled);

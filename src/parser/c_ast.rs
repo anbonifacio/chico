@@ -1,5 +1,6 @@
 use std::fmt::{Display, Formatter};
 
+#[derive(Debug)]
 pub enum CProgram {
     Program(FunctionDefinition),
 }
@@ -20,6 +21,7 @@ impl Display for CProgram {
     }
 }
 
+#[derive(Debug)]
 pub enum FunctionDefinition {
     Function(Identifier, Vec<BlockItem>),
 }
@@ -128,18 +130,28 @@ impl Declaration {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct ExprRef(u32);
+pub struct ExprRef {
+    id: u32,
+    expr_type: ExprType,
+}
 
 impl ExprRef {
+    pub fn new(id: u32, expr_type: ExprType) -> Self {
+        ExprRef { id, expr_type }
+    }
+
     pub fn id(&self) -> u32 {
-        self.0
+        self.id
+    }
+
+    pub fn expr_type(&self) -> ExprType {
+        self.expr_type
     }
 }
 
 impl Display for ExprRef {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        // FIXME: how to get the real Expr from ExprPool for each index [0..self.0]?
-        write!(f, "ExprRef[{}]", self.0 + 1)
+        write!(f, "ExprRef[{}: {:?}]", self.id, self.expr_type)
     }
 }
 
@@ -151,19 +163,48 @@ impl ExprPool {
         ExprPool(Vec::new())
     }
 
-    pub fn get_expr(&self, id: ExprRef) -> &Expr {
-        &self.0[id.0 as usize]
+    #[cfg(test)]
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn get_expr(&self, id: u32) -> &Expr {
+        &self.0[id as usize]
     }
 
     pub fn add_expr(&mut self, expr: Expr) -> ExprRef {
         let id = self.0.len() as u32;
-        self.0.push(expr);
-        ExprRef(id)
+        self.0.push(expr.clone());
+        ExprRef {
+            id,
+            expr_type: expr.get_type(),
+        }
     }
 
     pub fn update_expr(&mut self, id: &ExprRef, expr: Expr) {
-        self.0[id.0 as usize] = expr;
+        self.0[id.id as usize] = expr;
     }
+
+    pub(crate) fn last_expr(&self) -> std::io::Result<ExprRef> {
+        match self.0.iter().enumerate().next_back() {
+            Some((idx, expr)) => Ok(ExprRef {
+                id: idx as u32,
+                expr_type: expr.get_type(),
+            }),
+            None => Err(std::io::Error::other(
+                "Expression pool is empty, cannot get last expression",
+            )),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum ExprType {
+    Constant,
+    Var,
+    Unary(UnaryOperator),
+    Binary(BinaryOperator),
+    Assignment,
 }
 
 #[derive(Debug, Clone)]
@@ -186,6 +227,16 @@ impl Expr {
             _ => Err(std::io::Error::other("Not a variable")),
         }
     }
+
+    pub fn get_type(&self) -> ExprType {
+        match self {
+            Expr::Constant(_) => ExprType::Constant,
+            Expr::Var(_) => ExprType::Var,
+            Expr::Unary(op, _) => ExprType::Unary(*op),
+            Expr::Binary(op, _, _) => ExprType::Binary(*op),
+            Expr::Assignment(_, _) => ExprType::Assignment,
+        }
+    }
 }
 
 impl Display for Expr {
@@ -200,11 +251,27 @@ impl Display for Expr {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum UnaryOperator {
     Complement,
     Negate,
     Not,
+    PrefixIncr,
+    PrefixDecr,
+    PostfixIncr,
+    PostfixDecr,
+}
+
+impl UnaryOperator {
+    pub fn is_lvalue_op(&self) -> bool {
+        matches!(
+            self,
+            UnaryOperator::PrefixIncr
+                | UnaryOperator::PrefixDecr
+                | UnaryOperator::PostfixIncr
+                | UnaryOperator::PostfixDecr
+        )
+    }
 }
 
 impl Display for UnaryOperator {
@@ -213,11 +280,13 @@ impl Display for UnaryOperator {
             UnaryOperator::Complement => write!(f, "'~'"),
             UnaryOperator::Negate => write!(f, "'-'"),
             UnaryOperator::Not => write!(f, "'!'"),
+            UnaryOperator::PrefixIncr | UnaryOperator::PostfixIncr => write!(f, "'++'"),
+            UnaryOperator::PrefixDecr | UnaryOperator::PostfixDecr => write!(f, "'--'"),
         }
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum BinaryOperator {
     Add,
     Subtract,
@@ -237,6 +306,51 @@ pub enum BinaryOperator {
     LessOrEqual,
     GreaterThan,
     GreaterOrEqual,
+    Assign,
+    AssignPlus,
+    AssignMinus,
+    AssignMult,
+    AssignDiv,
+    AssignMod,
+    AssignAnd,
+    AssignOr,
+    AssignXor,
+    AssignLeftShift,
+    AssignRightShift,
+}
+
+impl BinaryOperator {
+    pub fn is_compound_assignment(&self) -> bool {
+        matches!(
+            self,
+            BinaryOperator::AssignPlus
+                | BinaryOperator::AssignMinus
+                | BinaryOperator::AssignMult
+                | BinaryOperator::AssignDiv
+                | BinaryOperator::AssignMod
+                | BinaryOperator::AssignAnd
+                | BinaryOperator::AssignOr
+                | BinaryOperator::AssignXor
+                | BinaryOperator::AssignLeftShift
+                | BinaryOperator::AssignRightShift
+        )
+    }
+
+    pub fn get_compound_operator(&self) -> Option<BinaryOperator> {
+        match self {
+            BinaryOperator::AssignPlus => Some(BinaryOperator::AssignPlus),
+            BinaryOperator::AssignMinus => Some(BinaryOperator::AssignMinus),
+            BinaryOperator::AssignMult => Some(BinaryOperator::AssignMult),
+            BinaryOperator::AssignDiv => Some(BinaryOperator::AssignDiv),
+            BinaryOperator::AssignMod => Some(BinaryOperator::AssignMod),
+            BinaryOperator::AssignAnd => Some(BinaryOperator::AssignAnd),
+            BinaryOperator::AssignOr => Some(BinaryOperator::AssignOr),
+            BinaryOperator::AssignXor => Some(BinaryOperator::AssignXor),
+            BinaryOperator::AssignLeftShift => Some(BinaryOperator::AssignLeftShift),
+            BinaryOperator::AssignRightShift => Some(BinaryOperator::AssignRightShift),
+            _ => None,
+        }
+    }
 }
 
 impl Display for BinaryOperator {
@@ -260,6 +374,17 @@ impl Display for BinaryOperator {
             BinaryOperator::LessOrEqual => write!(f, "'<='"),
             BinaryOperator::GreaterThan => write!(f, "'>'"),
             BinaryOperator::GreaterOrEqual => write!(f, "'>='"),
+            BinaryOperator::Assign => write!(f, "'='"),
+            BinaryOperator::AssignPlus => write!(f, "'+='"),
+            BinaryOperator::AssignMinus => write!(f, "'-='"),
+            BinaryOperator::AssignMult => write!(f, "'*='"),
+            BinaryOperator::AssignDiv => write!(f, "'/='"),
+            BinaryOperator::AssignMod => write!(f, "'%='"),
+            BinaryOperator::AssignAnd => write!(f, "'&='"),
+            BinaryOperator::AssignOr => write!(f, "'|='"),
+            BinaryOperator::AssignXor => write!(f, "'^='"),
+            BinaryOperator::AssignLeftShift => write!(f, "'<<='"),
+            BinaryOperator::AssignRightShift => write!(f, "'>>='"),
         }
     }
 }

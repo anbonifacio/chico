@@ -20,14 +20,15 @@ impl<'expr> SemanticAnalysis<'expr> {
         c_program: crate::parser::c_ast::CProgram,
     ) -> std::io::Result<CProgram> {
         let body = c_program.fn_def().body();
+        log::debug!("Analyzing block items: {:?}", body);
         let new_body = body
             .iter()
             .map(|block_item| match block_item {
-                crate::parser::c_ast::BlockItem::S(statement) => Ok(BlockItem::S(
-                    self.variable_resolver.resolve_statement(statement)?,
-                )),
                 crate::parser::c_ast::BlockItem::D(declaration) => Ok(BlockItem::D(
                     self.variable_resolver.resolve_declaration(declaration)?,
+                )),
+                crate::parser::c_ast::BlockItem::S(statement) => Ok(BlockItem::S(
+                    self.variable_resolver.resolve_statement(statement)?,
                 )),
             })
             .collect::<Result<Vec<_>, std::io::Error>>()?;

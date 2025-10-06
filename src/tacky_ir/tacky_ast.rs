@@ -173,6 +173,7 @@ pub enum BinaryOperator {
     LessOrEqual,
     GreaterThan,
     GreaterOrEqual,
+    Assign,
 }
 
 impl Display for BinaryOperator {
@@ -196,6 +197,7 @@ impl Display for BinaryOperator {
             BinaryOperator::LessOrEqual => write!(f, "'<='"),
             BinaryOperator::GreaterThan => write!(f, "'>'"),
             BinaryOperator::GreaterOrEqual => write!(f, "'>='"),
+            BinaryOperator::Assign => write!(f, "'='"),
         }
     }
 }

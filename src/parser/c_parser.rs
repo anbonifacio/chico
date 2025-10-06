@@ -53,6 +53,61 @@ impl<'expr> CParser<'expr> {
         Ok(Function(identifier, function_body))
     }
 
+    fn parse_block_item(
+        &mut self,
+        tokens_iter: &mut Peekable<Iter<'expr, Token>>,
+    ) -> std::io::Result<BlockItem> {
+        if let Some(next_token) = tokens_iter.peek() {
+            match next_token.token_type {
+                TokenType::IntKeyword => {
+                    // This is a Declaration
+                    log::debug!("Parsing declaration in block item...");
+                    let declaration = self.parse_declaration(tokens_iter)?;
+                    Ok(BlockItem::D(declaration))
+                }
+                _ => {
+                    // This is a Statement
+                    log::debug!("Parsing statement in block item...");
+                    let statement = self.parse_statement(tokens_iter)?;
+                    Ok(BlockItem::S(statement))
+                }
+            }
+        } else {
+            Err(std::io::Error::new(
+                std::io::ErrorKind::UnexpectedEof,
+                "Unexpected end of input",
+            ))
+        }
+    }
+
+    fn parse_declaration(
+        &mut self,
+        tokens_iter: &mut Peekable<Iter<'expr, Token>>,
+    ) -> std::io::Result<Declaration> {
+        self.expect(TokenType::IntKeyword, tokens_iter)?;
+        let identifier = self.parse_identifier(tokens_iter)?;
+        let expr = match tokens_iter.peek() {
+            Some(next_token) => match next_token.token_type {
+                TokenType::Assign => {
+                    self.extract_token(tokens_iter)?;
+                    log::debug!("Parsing initializer for declaration...");
+                    let expr = self.parse_expression(tokens_iter, 0)?;
+                    log::debug!(
+                        "Parsed initializer expression: {}",
+                        self.expr_pool.get_expr(expr.id())
+                    );
+                    Some(expr)
+                }
+                _ => None,
+            },
+            None => None,
+        };
+        self.expect(TokenType::Semicolon, tokens_iter)?;
+        let declaration = Declaration::Declaration(identifier, expr);
+        log::debug!("Parsed declaration: {}", declaration);
+        Ok(declaration)
+    }
+
     fn parse_identifier(
         &self,
         tokens_iter: &mut Peekable<Iter<Token>>,
@@ -83,16 +138,15 @@ impl<'expr> CParser<'expr> {
         tokens_iter: &mut Peekable<Iter<'expr, Token>>,
     ) -> std::io::Result<Statement> {
         let statement = if let Some(next_token) = tokens_iter.peek() {
-            log::debug!("Parsing statement starting with {:?}", next_token);
+            log::debug!("Next statement {:?}", next_token);
             match next_token.token_type {
                 TokenType::ReturnKeyword => {
                     self.expect(TokenType::ReturnKeyword, tokens_iter)?;
                     let expression = self.parse_expression(tokens_iter, 0)?;
                     Statement::Return(expression)
                 }
-                TokenType::Assign => {
-                    log::debug!("Parsing assignment statement...");
-                    self.expect(TokenType::Assign, tokens_iter)?;
+                t if t.is_assignment() => {
+                    self.extract_token(tokens_iter)?;
                     let expression = self.parse_expression(tokens_iter, 0)?;
                     Statement::Expression(expression)
                 }
@@ -101,7 +155,9 @@ impl<'expr> CParser<'expr> {
                 | TokenType::OpenParenthesis
                 | TokenType::Tilde
                 | TokenType::Hyphen
-                | TokenType::Not => {
+                | TokenType::Not
+                | TokenType::DoublePlus
+                | TokenType::DoubleHyphens => {
                     let expression = self.parse_expression(tokens_iter, 0)?;
                     Statement::Expression(expression)
                 }
@@ -123,11 +179,97 @@ impl<'expr> CParser<'expr> {
         Ok(statement)
     }
 
+    fn parse_expression(
+        &mut self,
+        tokens_iter: &mut Peekable<Iter<'expr, Token>>,
+        min_prec: u8,
+    ) -> std::io::Result<ExprRef> {
+        let mut left = self.parse_factor(tokens_iter)?;
+        log::debug!("Parsed left factor: {}", self.expr_pool.get_expr(left.id()));
+        if let Some(mut next_token) = tokens_iter.peek() {
+            loop {
+                let next_prec = next_token.token_type.precedence();
+                if next_token.token_type.is_binop() && next_prec >= min_prec {
+                    match next_token.token_type {
+                        t if t.is_assignment() => {
+                            log::debug!("Parsing assignment operator {:?}", next_token.token_type);
+                            let operator = self.parse_binop(tokens_iter)?;
+                            let compound_op = operator.get_compound_operator();
+                            match compound_op {
+                                Some(compound_op) => {
+                                    // This is a compound assignment (e.g., +=, -=)
+                                    log::debug!(
+                                        "Parsing compound assignment operator: {:?}",
+                                        compound_op
+                                    );
+                                    let right = self.parse_expression(tokens_iter, next_prec)?;
+                                    log::debug!(
+                                        "Parsed right factor: {}",
+                                        self.expr_pool.get_expr(right.id())
+                                    );
+                                    left = self.expr_pool.add_expr(Expr::Binary(
+                                        compound_op,
+                                        left,
+                                        right,
+                                    ));
+                                }
+                                None => {
+                                    // This is a simple assignment (=)
+                                    log::debug!(
+                                        "Parsing simple assignment operator: {:?}",
+                                        operator
+                                    );
+                                    let right = self.parse_expression(tokens_iter, next_prec)?;
+                                    log::debug!(
+                                        "Parsed right factor: {}",
+                                        self.expr_pool.get_expr(right.id())
+                                    );
+                                    left = self.expr_pool.add_expr(Expr::Assignment(left, right));
+                                }
+                            }
+                        }
+                        _ => {
+                            let operator = self.parse_binop(tokens_iter)?;
+                            log::debug!("Parsed binary operator: {:?}", operator);
+                            let right = self.parse_expression(tokens_iter, next_prec + 1)?;
+                            log::debug!(
+                                "Parsed right factor: {}",
+                                self.expr_pool.get_expr(right.id())
+                            );
+                            left = self.expr_pool.add_expr(Expr::Binary(operator, left, right));
+                        }
+                    }
+                    next_token = if let Some(next_token) = tokens_iter.peek() {
+                        log::debug!("Next token: {:?}", next_token);
+                        next_token
+                    } else {
+                        break;
+                    }
+                } else {
+                    break;
+                }
+            }
+            log::debug!(
+                "Return expression: {:?}",
+                self.expr_pool.get_expr(left.id())
+            );
+            Ok(left)
+        } else {
+            Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                format!(
+                    "Malformed expression, found: {:?}",
+                    tokens_iter.peekable().peek()
+                ),
+            ))
+        }
+    }
+
     fn parse_factor(
         &mut self,
         tokens_iter: &mut Peekable<Iter<'expr, Token>>,
     ) -> std::io::Result<ExprRef> {
-        if let Some(next_token) = tokens_iter.peek() {
+        let factor = if let Some(next_token) = tokens_iter.peek() {
             log::debug!("Parsing factor starting with {:?}", next_token);
             match next_token.token_type {
                 TokenType::Constant => {
@@ -135,17 +277,20 @@ impl<'expr> CParser<'expr> {
                     let expr_ref = self
                         .expr_pool
                         .add_expr(Expr::Constant(self.parse_as_i32(token)?));
-                    log::debug!("Parsed constant: {}", self.expr_pool.get_expr(expr_ref));
+                    log::debug!(
+                        "Parsed constant: {}",
+                        self.expr_pool.get_expr(expr_ref.id())
+                    );
                     Ok(expr_ref)
                 }
-                TokenType::Tilde | TokenType::Hyphen | TokenType::Not => {
+                t if t.is_unop() => {
                     let token = self.extract_token(tokens_iter)?;
                     let operator = self.parse_unop(token)?;
                     let inner_expr = self.parse_factor(tokens_iter)?;
                     let expr_ref = self.expr_pool.add_expr(Expr::Unary(operator, inner_expr));
                     log::debug!(
                         "Parsed unary expression: {}",
-                        self.expr_pool.get_expr(expr_ref)
+                        self.expr_pool.get_expr(expr_ref.id())
                     );
                     Ok(expr_ref)
                 }
@@ -155,7 +300,7 @@ impl<'expr> CParser<'expr> {
                     self.expect(TokenType::CloseParenthesis, tokens_iter)?;
                     log::debug!(
                         "Parsed parenthesized expression: ({})",
-                        self.expr_pool.get_expr(expr_ref)
+                        self.expr_pool.get_expr(expr_ref.id())
                     );
                     Ok(expr_ref)
                 }
@@ -164,7 +309,7 @@ impl<'expr> CParser<'expr> {
                     let expr_ref = self.expr_pool.add_expr(Expr::Var(var));
                     log::debug!(
                         "Parsed Var expression: {}",
-                        self.expr_pool.get_expr(expr_ref)
+                        self.expr_pool.get_expr(expr_ref.id())
                     );
                     Ok(expr_ref)
                 }
@@ -181,55 +326,35 @@ impl<'expr> CParser<'expr> {
                     tokens_iter.peekable().peek()
                 ),
             ))
-        }
+        };
+        log::debug!("Checking for postfix operations...");
+        self.parse_postfix_tokens(factor?, tokens_iter)
     }
 
-    fn parse_expression(
+    fn parse_postfix_tokens(
         &mut self,
+        factor: ExprRef,
         tokens_iter: &mut Peekable<Iter<'expr, Token>>,
-        min_prec: u8,
     ) -> std::io::Result<ExprRef> {
-        let mut left = self.parse_factor(tokens_iter)?;
-        log::debug!("Parsed left factor: {}", self.expr_pool.get_expr(left));
-        if let Some(mut next_token) = tokens_iter.peek() {
-            loop {
-                let next_prec = next_token.token_type.precedence();
-                if next_token.token_type.is_binop() && next_prec >= min_prec {
-                    if next_token.token_type == TokenType::Assign {
-                        // Assignment is right associative
-                        log::debug!("Parsing assignment operator");
-                        self.expect(TokenType::Assign, tokens_iter)?;
-                        let right = self.parse_expression(tokens_iter, next_prec)?;
-                        log::debug!("Parsed right factor: {}", self.expr_pool.get_expr(right));
-                        left = self.expr_pool.add_expr(Expr::Assignment(left, right));
-                    } else {
-                        let operator = self.parse_binop(tokens_iter)?;
-                        log::debug!("Parsed binary operator: {:?}", operator);
-                        let right = self.parse_expression(tokens_iter, next_prec + 1)?;
-                        log::debug!("Parsed right factor: {}", self.expr_pool.get_expr(right));
-                        left = self.expr_pool.add_expr(Expr::Binary(operator, left, right));
-                    }
-                    next_token = if let Some(next_token) = tokens_iter.peek() {
-                        log::debug!("Next token: {:?}", next_token);
-                        next_token
-                    } else {
-                        break;
-                    }
-                } else {
+        let mut last_factor = factor;
+        while let Some(next_token) = tokens_iter.peek() {
+            match next_token.token_type {
+                t if t.is_postfix_op() => {
+                    let token = self.extract_token(tokens_iter)?;
+                    let expr_ref = self.parse_postfix_expression(&token.token_type)?;
+                    log::debug!(
+                        "Parsed postfix expression: {}",
+                        self.expr_pool.get_expr(expr_ref.id())
+                    );
+                    last_factor = expr_ref;
+                }
+                t => {
+                    log::debug!("No postfix operator found, continuing with token: {:?}", t);
                     break;
                 }
             }
-            log::debug!("Return expression: {:?}", self.expr_pool.get_expr(left));
-            Ok(left)
-        } else {
-            Err(std::io::Error::new(
-                std::io::ErrorKind::InvalidData,
-                format!(
-                    "Malformed factor, found: {:?}",
-                    tokens_iter.peekable().peek()
-                ),
-            ))
         }
+        Ok(last_factor)
     }
 
     fn parse_unop(&self, token: &Token) -> std::io::Result<UnaryOperator> {
@@ -237,6 +362,8 @@ impl<'expr> CParser<'expr> {
             TokenType::Tilde => Ok(UnaryOperator::Complement),
             TokenType::Hyphen => Ok(UnaryOperator::Negate),
             TokenType::Not => Ok(UnaryOperator::Not),
+            TokenType::DoublePlus => Ok(UnaryOperator::PrefixIncr),
+            TokenType::DoubleHyphens => Ok(UnaryOperator::PrefixDecr),
             _ => Err(std::io::Error::new(
                 std::io::ErrorKind::InvalidInput,
                 format!("Expected unary operator, found {:?}", token.token_type),
@@ -306,6 +433,17 @@ impl<'expr> CParser<'expr> {
                 TokenType::LessThanEq => Ok(BinaryOperator::LessOrEqual),
                 TokenType::GreaterThan => Ok(BinaryOperator::GreaterThan),
                 TokenType::GreaterThanEq => Ok(BinaryOperator::GreaterOrEqual),
+                TokenType::Assign => Ok(BinaryOperator::Assign),
+                TokenType::AssignPlus => Ok(BinaryOperator::AssignPlus),
+                TokenType::AssignMinus => Ok(BinaryOperator::AssignMinus),
+                TokenType::AssignMult => Ok(BinaryOperator::AssignMult),
+                TokenType::AssignDiv => Ok(BinaryOperator::AssignDiv),
+                TokenType::AssignMod => Ok(BinaryOperator::AssignMod),
+                TokenType::AssignAnd => Ok(BinaryOperator::AssignAnd),
+                TokenType::AssignOr => Ok(BinaryOperator::AssignOr),
+                TokenType::AssignXor => Ok(BinaryOperator::AssignXor),
+                TokenType::AssignLeftShift => Ok(BinaryOperator::AssignLeftShift),
+                TokenType::AssignRightShift => Ok(BinaryOperator::AssignRightShift),
                 _ => Err(std::io::Error::new(
                     std::io::ErrorKind::InvalidInput,
                     format!("Expected binary operator, found {:?}", token.token_type),
@@ -318,58 +456,135 @@ impl<'expr> CParser<'expr> {
         }
     }
 
-    fn parse_block_item(
-        &mut self,
-        tokens_iter: &mut Peekable<Iter<'expr, Token>>,
-    ) -> std::io::Result<BlockItem> {
-        if let Some(next_token) = tokens_iter.peek() {
-            match next_token.token_type {
-                TokenType::IntKeyword => {
-                    // This is a Declaration
-                    log::debug!("Parsing declaration in block item...");
-                    let declaration = self.parse_declaration(tokens_iter)?;
-                    Ok(BlockItem::D(declaration))
-                }
-                _ => {
-                    // This is a Statement
-                    log::debug!("Parsing statement in block item...");
-                    let statement = self.parse_statement(tokens_iter)?;
-                    Ok(BlockItem::S(statement))
-                }
+    fn parse_postfix_expression(&mut self, token_type: &TokenType) -> std::io::Result<ExprRef> {
+        let last_expression = self.expr_pool.last_expr()?;
+
+        match token_type {
+            TokenType::DoublePlus => {
+                log::debug!(
+                    "Parsing postfix increment operator on last expr {:?}",
+                    last_expression.expr_type()
+                );
+                let last_exp = ExprRef::new(
+                    last_expression.id(),
+                    ExprType::Unary(UnaryOperator::PostfixIncr),
+                );
+                let expr_ref = self
+                    .expr_pool
+                    .add_expr(Expr::Unary(UnaryOperator::PostfixIncr, last_exp));
+                Ok(expr_ref)
             }
-        } else {
-            Err(std::io::Error::new(
-                std::io::ErrorKind::UnexpectedEof,
-                "Unexpected end of input",
-            ))
+            TokenType::DoubleHyphens => {
+                log::debug!(
+                    "Parsing postfix decrement operator on last expr {:?}",
+                    last_expression.expr_type()
+                );
+                let last_exp = ExprRef::new(
+                    last_expression.id(),
+                    ExprType::Unary(UnaryOperator::PostfixDecr),
+                );
+                let expr_ref = self
+                    .expr_pool
+                    .add_expr(Expr::Unary(UnaryOperator::PostfixDecr, last_exp));
+                Ok(expr_ref)
+            }
+            _ => Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                format!("Expected postfix operator, found {:?}", token_type),
+            )),
         }
     }
+}
 
-    fn parse_declaration(
-        &mut self,
-        tokens_iter: &mut Peekable<Iter<'expr, Token>>,
-    ) -> std::io::Result<Declaration> {
-        self.expect(TokenType::IntKeyword, tokens_iter)?;
-        let identifier = self.parse_identifier(tokens_iter)?;
-        let expr = match tokens_iter.peek() {
-            Some(next_token) => match next_token.token_type {
-                TokenType::Assign => {
-                    self.expect(TokenType::Assign, tokens_iter)?;
-                    log::debug!("Parsing initializer for declaration...");
-                    let expr = self.parse_expression(tokens_iter, 0)?;
-                    log::debug!(
-                        "Parsed initializer expression: {}",
-                        self.expr_pool.get_expr(expr)
-                    );
-                    Some(expr)
-                }
-                _ => None,
-            },
-            None => None,
-        };
-        self.expect(TokenType::Semicolon, tokens_iter)?;
-        let declaration = Declaration::Declaration(identifier, expr);
-        log::debug!("Parsed declaration: {}", declaration);
-        Ok(declaration)
+#[cfg(test)]
+mod tests {
+    use crate::{
+        lexer::token::{Token, TokenType},
+        parser::{
+            c_ast::{Expr, ExprPool, Statement, UnaryOperator},
+            c_parser::CParser,
+        },
+    };
+
+    #[test]
+    fn test_parse_statement_prefix_increment() {
+        let tokens = vec![
+            Token::new("++", 6, TokenType::DoublePlus),
+            Token::new("a", 8, TokenType::Identifier),
+            Token::new(";", 9, TokenType::Semicolon),
+        ];
+        let mut pool = ExprPool::new();
+        let mut parser = CParser::new(&mut pool, &tokens);
+        let res = parser
+            .parse_statement(&mut tokens.iter().peekable())
+            .unwrap();
+        assert!(matches!(res, Statement::Expression(_)));
+        assert_eq!(pool.len(), 2);
+        assert!(matches!(pool.get_expr(0), Expr::Var(_)));
+        assert!(matches!(
+            pool.get_expr(1),
+            Expr::Unary(UnaryOperator::PrefixIncr, _)
+        ));
+    }
+
+    #[test]
+    fn test_parse_statement_postfix_increment() {
+        let tokens = vec![
+            Token::new("a", 6, TokenType::Identifier),
+            Token::new("++", 7, TokenType::DoublePlus),
+            Token::new(";", 9, TokenType::Semicolon),
+        ];
+        let mut pool = ExprPool::new();
+        let mut parser = CParser::new(&mut pool, &tokens);
+        let res = parser
+            .parse_statement(&mut tokens.iter().peekable())
+            .unwrap();
+        assert!(matches!(
+            res,
+            crate::parser::c_ast::Statement::Expression(_)
+        ));
+        println!("ExprPool: {:?}", pool);
+        println!("First Expr: {:?}", pool.get_expr(0));
+        println!("Second Expr: {:?}", pool.get_expr(1));
+        assert_eq!(pool.len(), 2);
+        assert!(matches!(
+            pool.get_expr(0),
+            crate::parser::c_ast::Expr::Var(_)
+        ));
+        assert!(matches!(
+            pool.get_expr(1),
+            crate::parser::c_ast::Expr::Unary(UnaryOperator::PostfixIncr, _)
+        ));
+    }
+
+    #[test]
+    fn test_parse_statement_postfix_decr_non_lvalue() {
+        let tokens = vec![
+            Token::new("return", 1, TokenType::ReturnKeyword),
+            Token::new("a", 2, TokenType::Identifier),
+            Token::new("++", 4, TokenType::DoublePlus),
+            Token::new("--", 6, TokenType::DoubleHyphens),
+            Token::new(";", 7, TokenType::Semicolon),
+        ];
+        let mut pool = ExprPool::new();
+        let mut parser = CParser::new(&mut pool, &tokens);
+        let res = parser
+            .parse_statement(&mut tokens.iter().peekable())
+            .unwrap();
+        assert!(matches!(res, crate::parser::c_ast::Statement::Return(_)));
+        println!("ExprPool: {:?}", pool);
+        assert_eq!(pool.len(), 3);
+        assert!(matches!(
+            pool.get_expr(0),
+            crate::parser::c_ast::Expr::Var(_)
+        ));
+        assert!(matches!(
+            pool.get_expr(1),
+            Expr::Unary(UnaryOperator::PostfixIncr, _)
+        ));
+        assert!(matches!(
+            pool.get_expr(2),
+            Expr::Unary(UnaryOperator::PostfixDecr, _)
+        ));
     }
 }

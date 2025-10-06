@@ -12,9 +12,9 @@ pub enum TokenType {
     VoidKeyword,
     Tilde,
     Hyphen,
-    TwoHyphens,
+    DoubleHyphens,
     Plus,
-    PlusPlus,
+    DoublePlus,
     Asterisk,
     ForwardSlash,
     Percent,
@@ -33,6 +33,16 @@ pub enum TokenType {
     LessThanEq,
     GreaterThanEq,
     Assign,
+    AssignPlus,
+    AssignMinus,
+    AssignMult,
+    AssignDiv,
+    AssignMod,
+    AssignAnd,
+    AssignOr,
+    AssignXor,
+    AssignLeftShift,
+    AssignRightShift,
 }
 
 impl TokenType {
@@ -51,9 +61,31 @@ impl TokenType {
             TokenType::BitwiseOr => 15,
             TokenType::And => 10,
             TokenType::Or => 5,
-            TokenType::Assign => 1,
+            TokenType::Assign
+            | TokenType::AssignPlus
+            | TokenType::AssignMinus
+            | TokenType::AssignMult
+            | TokenType::AssignDiv
+            | TokenType::AssignMod
+            | TokenType::AssignAnd
+            | TokenType::AssignOr
+            | TokenType::AssignXor
+            | TokenType::AssignLeftShift
+            | TokenType::AssignRightShift => 1,
             _ => 0,
         }
+    }
+
+    pub fn is_unop(&self) -> bool {
+        matches!(
+            self,
+            TokenType::DoublePlus
+                | TokenType::DoubleHyphens
+                | TokenType::Tilde
+                | TokenType::Not
+                | TokenType::Hyphen
+                | TokenType::Plus
+        )
     }
 
     pub fn is_binop(&self) -> bool {
@@ -78,7 +110,38 @@ impl TokenType {
                 | TokenType::GreaterThanEq
                 | TokenType::Equal
                 | TokenType::Assign
+                | TokenType::AssignPlus
+                | TokenType::AssignMinus
+                | TokenType::AssignMult
+                | TokenType::AssignDiv
+                | TokenType::AssignMod
+                | TokenType::AssignAnd
+                | TokenType::AssignOr
+                | TokenType::AssignXor
+                | TokenType::AssignLeftShift
+                | TokenType::AssignRightShift
         )
+    }
+
+    pub fn is_assignment(&self) -> bool {
+        matches!(
+            self,
+            TokenType::Assign
+                | TokenType::AssignPlus
+                | TokenType::AssignMinus
+                | TokenType::AssignMult
+                | TokenType::AssignDiv
+                | TokenType::AssignMod
+                | TokenType::AssignAnd
+                | TokenType::AssignOr
+                | TokenType::AssignXor
+                | TokenType::AssignLeftShift
+                | TokenType::AssignRightShift
+        )
+    }
+
+    pub fn is_postfix_op(&self) -> bool {
+        matches!(self, TokenType::DoublePlus | TokenType::DoubleHyphens)
     }
 }
 
