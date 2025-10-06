@@ -163,6 +163,7 @@ impl ExprPool {
         ExprPool(Vec::new())
     }
 
+    #[cfg(test)]
     pub fn len(&self) -> usize {
         self.0.len()
     }

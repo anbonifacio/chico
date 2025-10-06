@@ -16,6 +16,7 @@ impl Lexer<BufReader<File>> {
     }
 }
 
+#[cfg(test)]
 impl<'a> Lexer<BufReader<&'a [u8]>> {
     pub fn from_bytes(bytes: &'a [u8]) -> Self {
         let reader = BufReader::new(bytes);

@@ -1,4 +1,4 @@
-use crate::parser::c_ast::{self, BlockItem, ExprType};
+use crate::parser::c_ast::{self, BlockItem};
 use crate::parser::c_ast::{CProgram, ExprPool, ExprRef, Statement};
 use crate::tacky_ir::tacky_ast;
 use crate::tacky_ir::tacky_ast::*;
