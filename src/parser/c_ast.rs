@@ -96,7 +96,7 @@ impl Display for Statement {
             Statement::Return(expr_ref) => write!(f, "Return: {}", expr_ref),
             Statement::Expression(expr_ref) => write!(f, "Expression: {}", expr_ref),
             Statement::Null => write!(f, "Null;"),
-            Statement::If(expr_ref, statement_ref, statement_ref1) => todo!(),
+            Statement::If(condition, then_statement, else_statement) => todo!(),
         }
     }
 }

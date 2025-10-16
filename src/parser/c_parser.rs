@@ -166,6 +166,35 @@ impl<'pool> CParser<'pool> {
                     let expression = self.parse_expression(tokens_iter, 0)?;
                     Statement::Expression(expression)
                 }
+                TokenType::IfKeyword => {
+                    self.expect(TokenType::OpenParenthesis, tokens_iter)?;
+                    let expression = self.parse_expression(tokens_iter, 0)?;
+                    self.expect(TokenType::CloseParenthesis, tokens_iter)?;
+                    let statement = self.parse_statement(tokens_iter)?;
+                    let statement_ref = self
+                        .nodes_pool()
+                        .statements_pool_mut()
+                        .add_statement(statement);
+                    let else_ref = if let Some(next_token) = tokens_iter.peek() {
+                        if next_token.token_type == TokenType::ElseKeyword {
+                            self.expect(TokenType::ElseKeyword, tokens_iter)?;
+                            let else_statement = self.parse_statement(tokens_iter)?;
+                            let else_statement_ref = self
+                                .nodes_pool()
+                                .statements_pool_mut()
+                                .add_statement(else_statement);
+                            Some(else_statement_ref)
+                        } else {
+                            None
+                        }
+                    } else {
+                        return Err(std::io::Error::new(
+                            std::io::ErrorKind::UnexpectedEof,
+                            "Unexpected end of input",
+                        ));
+                    };
+                    Statement::If(expression, statement_ref, else_ref)
+                }
                 TokenType::Semicolon => Statement::Null,
                 _ => {
                     return Err(std::io::Error::new(

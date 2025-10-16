@@ -67,7 +67,7 @@ impl<'pool> VariableResolver<'pool> {
                 Ok(Statement::Expression(self.resolve_exp(expr_ref)?))
             }
             Statement::Null => Ok(Statement::Null),
-            Statement::If(expr_ref, statement_ref, statement_ref1) => todo!(),
+            Statement::If(condition, then_statement, else_statement) => todo!(),
         }
     }
 
