@@ -148,4 +148,5 @@ pub enum ExprType {
     Unary(UnaryOperator),
     Binary(BinaryOperator),
     Assignment,
+    Conditional,
 }

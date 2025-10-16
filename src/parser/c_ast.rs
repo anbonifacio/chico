@@ -140,6 +140,7 @@ pub enum Expr {
     Unary(UnaryOperator, ExprRef),
     Binary(BinaryOperator, ExprRef, ExprRef),
     Assignment(ExprRef, ExprRef),
+    Conditional(ExprRef, ExprRef, ExprRef),
 }
 
 impl Expr {
@@ -161,6 +162,7 @@ impl Expr {
             Expr::Unary(op, _) => ExprType::Unary(*op),
             Expr::Binary(op, _, _) => ExprType::Binary(*op),
             Expr::Assignment(_, _) => ExprType::Assignment,
+            Expr::Conditional(_, _, _) => ExprType::Conditional,
         }
     }
 }
@@ -173,6 +175,9 @@ impl Display for Expr {
             Expr::Binary(op, left, right) => write!(f, "({} {} {})", left, op, right),
             Expr::Var(identifier) => write!(f, "{}", identifier.name()),
             Expr::Assignment(lvalue, rvalue) => write!(f, "{} = {}", lvalue, rvalue),
+            Expr::Conditional(condition, expr_ref1, expr_ref2) => {
+                write!(f, "{} ? {} : {}", condition, expr_ref1, expr_ref2)
+            }
         }
     }
 }

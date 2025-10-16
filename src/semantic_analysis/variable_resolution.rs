@@ -157,6 +157,7 @@ impl<'pool> VariableResolver<'pool> {
                     .update_expr(expr_ref, new_expr);
                 Ok(*expr_ref)
             }
+            crate::parser::c_ast::Expr::Conditional(condition, expr_ref1, expr_ref2) => todo!(),
         }
     }
 

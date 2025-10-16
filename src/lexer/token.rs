@@ -65,6 +65,7 @@ impl TokenType {
             TokenType::BitwiseOr => 15,
             TokenType::And => 10,
             TokenType::Or => 5,
+            TokenType::QuestionMark => 3,
             TokenType::Assign
             | TokenType::AssignPlus
             | TokenType::AssignMinus

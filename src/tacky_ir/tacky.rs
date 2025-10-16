@@ -189,7 +189,6 @@ impl<'pool> TackyGenerator<'pool> {
                 instructions.append(Instruction::Label(Identifier::Name(end_label)));
                 Ok(dst)
             }
-            // Handle compound assignments
             c_ast::Expr::Binary(operator, var_ref, rhs) if operator.is_compound_assignment() => {
                 log::debug!("Emitting compound assignment expression: {:?}", expr);
                 let expr = self.nodes_pool().expr_pool().get_expr(var_ref.id());
@@ -224,6 +223,7 @@ impl<'pool> TackyGenerator<'pool> {
                 instructions.append(Instruction::Copy(result, var.clone()));
                 Ok(var)
             }
+            c_ast::Expr::Conditional(condition, expr_ref1, expr_ref2) => todo!(),
         }
     }
 

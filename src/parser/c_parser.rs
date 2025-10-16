@@ -1,3 +1,4 @@
+use std::hint::unreachable_unchecked;
 use std::iter::Peekable;
 use std::slice::Iter;
 
@@ -148,11 +149,13 @@ impl<'pool> CParser<'pool> {
                 TokenType::ReturnKeyword => {
                     self.expect(TokenType::ReturnKeyword, tokens_iter)?;
                     let expression = self.parse_expression(tokens_iter, 0)?;
+                    self.expect(TokenType::Semicolon, tokens_iter)?;
                     Statement::Return(expression)
                 }
                 t if t.is_assignment() => {
                     self.extract_token(tokens_iter)?;
                     let expression = self.parse_expression(tokens_iter, 0)?;
+                    self.expect(TokenType::Semicolon, tokens_iter)?;
                     Statement::Expression(expression)
                 }
                 TokenType::Constant
@@ -164,9 +167,11 @@ impl<'pool> CParser<'pool> {
                 | TokenType::DoublePlus
                 | TokenType::DoubleHyphens => {
                     let expression = self.parse_expression(tokens_iter, 0)?;
+                    self.expect(TokenType::Semicolon, tokens_iter)?;
                     Statement::Expression(expression)
                 }
                 TokenType::IfKeyword => {
+                    self.expect(TokenType::IfKeyword, tokens_iter)?;
                     self.expect(TokenType::OpenParenthesis, tokens_iter)?;
                     let expression = self.parse_expression(tokens_iter, 0)?;
                     self.expect(TokenType::CloseParenthesis, tokens_iter)?;
@@ -176,16 +181,17 @@ impl<'pool> CParser<'pool> {
                         .statements_pool_mut()
                         .add_statement(statement);
                     let else_ref = if let Some(next_token) = tokens_iter.peek() {
-                        if next_token.token_type == TokenType::ElseKeyword {
-                            self.expect(TokenType::ElseKeyword, tokens_iter)?;
-                            let else_statement = self.parse_statement(tokens_iter)?;
-                            let else_statement_ref = self
-                                .nodes_pool()
-                                .statements_pool_mut()
-                                .add_statement(else_statement);
-                            Some(else_statement_ref)
-                        } else {
-                            None
+                        match next_token.token_type {
+                            TokenType::ElseKeyword => {
+                                self.expect(TokenType::ElseKeyword, tokens_iter)?;
+                                let else_statement = self.parse_statement(tokens_iter)?;
+                                let else_statement_ref = self
+                                    .nodes_pool()
+                                    .statements_pool_mut()
+                                    .add_statement(else_statement);
+                                Some(else_statement_ref)
+                            }
+                            _ => None,
                         }
                     } else {
                         return Err(std::io::Error::new(
@@ -195,7 +201,10 @@ impl<'pool> CParser<'pool> {
                     };
                     Statement::If(expression, statement_ref, else_ref)
                 }
-                TokenType::Semicolon => Statement::Null,
+                TokenType::Semicolon => {
+                    self.expect(TokenType::Semicolon, tokens_iter)?;
+                    Statement::Null
+                }
                 _ => {
                     return Err(std::io::Error::new(
                         std::io::ErrorKind::InvalidData,
@@ -209,7 +218,6 @@ impl<'pool> CParser<'pool> {
                 "Unexpected end of input",
             ));
         };
-        self.expect(TokenType::Semicolon, tokens_iter)?;
         Ok(statement)
     }
 
@@ -221,7 +229,7 @@ impl<'pool> CParser<'pool> {
         let mut left = self.parse_factor(tokens_iter)?;
         log::debug!(
             "Parsed left factor: {}",
-            self.nodes_pool.expr_pool().get_expr(left.id())
+            self.nodes_pool().expr_pool().get_expr(left.id())
         );
         if let Some(mut next_token) = tokens_iter.peek() {
             loop {
@@ -267,7 +275,16 @@ impl<'pool> CParser<'pool> {
                                 }
                             }
                         }
-                        _ => {
+                        t if t == TokenType::QuestionMark => {
+                            log::debug!("Parsing conditional operator");
+                            let middle = self.parse_conditional_middle(tokens_iter)?;
+                            let right = self.parse_expression(tokens_iter, next_prec)?;
+                            left = self
+                                .nodes_pool()
+                                .expr_pool_mut()
+                                .add_expr(Expr::Conditional(left, middle, right))
+                        }
+                        t if t.is_binop() => {
                             let operator = self.parse_binop(tokens_iter)?;
                             log::debug!("Parsed binary operator: {:?}", operator);
                             let right = self.parse_expression(tokens_iter, next_prec + 1)?;
@@ -280,6 +297,7 @@ impl<'pool> CParser<'pool> {
                                 .expr_pool_mut()
                                 .add_expr(Expr::Binary(operator, left, right));
                         }
+                        _ => unsafe { unreachable_unchecked() },
                     }
                     next_token = if let Some(next_token) = tokens_iter.peek() {
                         log::debug!("Next token: {:?}", next_token);
@@ -534,6 +552,16 @@ impl<'pool> CParser<'pool> {
                 format!("Expected postfix operator, found {:?}", token_type),
             )),
         }
+    }
+
+    fn parse_conditional_middle(
+        &mut self,
+        tokens_iter: &mut Peekable<Iter<'pool, Token>>,
+    ) -> std::io::Result<ExprRef> {
+        self.expect(TokenType::QuestionMark, tokens_iter)?;
+        let expr = self.parse_expression(tokens_iter, 0)?;
+        self.expect(TokenType::Colon, tokens_iter)?;
+        Ok(expr)
     }
 }
 
