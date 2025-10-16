@@ -1,20 +1,27 @@
 use std::collections::HashMap;
 
-use crate::parser::c_ast::{Declaration, ExprPool, ExprRef, Identifier, Statement};
+use crate::parser::{
+    c_ast::{Declaration, Identifier, Statement},
+    nodes_pool::{ExprRef, NodesPool},
+};
 
-pub(crate) struct VariableResolver<'expr> {
-    expr_pool: &'expr mut ExprPool,
+pub(crate) struct VariableResolver<'pool> {
+    nodes_pool: &'pool mut NodesPool,
     variable_map: HashMap<String, String>,
     counter: usize,
 }
 
-impl<'expr> VariableResolver<'expr> {
-    pub fn new(expr_pool: &'expr mut ExprPool) -> Self {
+impl<'pool> VariableResolver<'pool> {
+    pub fn new(nodes_pool: &'pool mut NodesPool) -> Self {
         Self {
-            expr_pool,
+            nodes_pool,
             variable_map: HashMap::new(),
             counter: 0,
         }
+    }
+
+    fn nodes_pool(&mut self) -> &mut NodesPool {
+        self.nodes_pool
     }
 
     pub fn resolve_declaration(
@@ -60,15 +67,13 @@ impl<'expr> VariableResolver<'expr> {
                 Ok(Statement::Expression(self.resolve_exp(expr_ref)?))
             }
             Statement::Null => Ok(Statement::Null),
+            Statement::If(expr_ref, statement_ref, statement_ref1) => todo!(),
         }
     }
 
-    pub fn resolve_exp(
-        &mut self,
-        expr_ref: &crate::parser::c_ast::ExprRef,
-    ) -> std::io::Result<ExprRef> {
+    pub fn resolve_exp(&mut self, expr_ref: &ExprRef) -> std::io::Result<ExprRef> {
         // Clone the expression out of the pool to avoid holding a borrow across recursion
-        let expr = self.expr_pool.get_expr(expr_ref.id()).clone();
+        let expr = self.nodes_pool.expr_pool().get_expr(expr_ref.id()).clone();
         log::debug!("Resolving expr: {:?}", expr);
         match expr {
             crate::parser::c_ast::Expr::Var(Identifier::Name(var_name)) => {
@@ -76,7 +81,9 @@ impl<'expr> VariableResolver<'expr> {
                 if let Some(resolved_name) = self.variable_map.get(&var_name) {
                     let new_expr =
                         crate::parser::c_ast::Expr::Var(Identifier::Name(resolved_name.clone()));
-                    self.expr_pool.update_expr(expr_ref, new_expr);
+                    self.nodes_pool()
+                        .expr_pool_mut()
+                        .update_expr(expr_ref, new_expr);
                     Ok(*expr_ref)
                 } else {
                     Err(std::io::Error::other(format!(
@@ -88,7 +95,11 @@ impl<'expr> VariableResolver<'expr> {
             crate::parser::c_ast::Expr::Assignment(left_ref, right_ref) => {
                 log::debug!("Resolving Assignment: {:?} = {:?}", left_ref, right_ref);
                 // Clone left expression out of the pool
-                let left = self.expr_pool.get_expr(left_ref.id()).clone();
+                let left = self
+                    .nodes_pool()
+                    .expr_pool()
+                    .get_expr(left_ref.id())
+                    .clone();
                 if !left.is_lvalue() {
                     return Err(std::io::Error::other(format!(
                         "Invalid lvalue: {:?}[{}]",
@@ -99,19 +110,27 @@ impl<'expr> VariableResolver<'expr> {
                 let new_left = self.resolve_exp(&left_ref)?;
                 let new_right = self.resolve_exp(&right_ref)?;
                 let new_expr = crate::parser::c_ast::Expr::Assignment(new_left, new_right);
-                self.expr_pool.update_expr(expr_ref, new_expr);
+                self.nodes_pool()
+                    .expr_pool_mut()
+                    .update_expr(expr_ref, new_expr);
                 Ok(*expr_ref)
             }
             crate::parser::c_ast::Expr::Constant(c) => {
                 log::debug!("Resolving Constant: {:?}", c);
                 let new_expr = crate::parser::c_ast::Expr::Constant(c);
-                self.expr_pool.update_expr(expr_ref, new_expr);
+                self.nodes_pool()
+                    .expr_pool_mut()
+                    .update_expr(expr_ref, new_expr);
                 Ok(*expr_ref)
             }
             crate::parser::c_ast::Expr::Unary(unary_operator, inner_expr_ref) => {
                 log::debug!("Resolving Unary: {:?}", inner_expr_ref);
                 if unary_operator.is_lvalue_op() {
-                    let inner = self.expr_pool.get_expr(inner_expr_ref.id()).clone();
+                    let inner = self
+                        .nodes_pool
+                        .expr_pool()
+                        .get_expr(inner_expr_ref.id())
+                        .clone();
                     log::debug!("Inner expr for lvalue check: {:?}", inner);
                     if !inner.is_lvalue() {
                         return Err(std::io::Error::other(format!(
@@ -123,7 +142,9 @@ impl<'expr> VariableResolver<'expr> {
                 }
                 let new_inner = self.resolve_exp(&inner_expr_ref)?;
                 let new_expr = crate::parser::c_ast::Expr::Unary(unary_operator, new_inner);
-                self.expr_pool.update_expr(expr_ref, new_expr);
+                self.nodes_pool()
+                    .expr_pool_mut()
+                    .update_expr(expr_ref, new_expr);
                 Ok(*expr_ref)
             }
             crate::parser::c_ast::Expr::Binary(binary_operator, left_ref, right_ref) => {
@@ -131,7 +152,9 @@ impl<'expr> VariableResolver<'expr> {
                 let new_right = self.resolve_exp(&right_ref)?;
                 let new_expr =
                     crate::parser::c_ast::Expr::Binary(binary_operator, new_left, new_right);
-                self.expr_pool.update_expr(expr_ref, new_expr);
+                self.nodes_pool()
+                    .expr_pool_mut()
+                    .update_expr(expr_ref, new_expr);
                 Ok(*expr_ref)
             }
         }
@@ -147,8 +170,8 @@ impl<'expr> VariableResolver<'expr> {
 #[cfg(test)]
 mod tests {
     use crate::lexer::c_lexer;
-    use crate::parser::c_ast::ExprPool;
     use crate::parser::c_parser::CParser;
+    use crate::parser::nodes_pool::{ExprPool, NodesPool};
     use crate::semantic_analysis::SemanticAnalysis;
 
     #[test]
@@ -166,14 +189,14 @@ mod tests {
         let tokens = lexer.tokenize().unwrap();
 
         // Set up parser and expression pool
-        let mut expr_pool = ExprPool::new();
-        let mut parser = CParser::new(&mut expr_pool, &tokens);
+        let mut pool = NodesPool::new();
+        let mut parser = CParser::new(&mut pool, &tokens);
 
         // Parse the program
         let program = parser.parse_program().unwrap();
 
         // Run semantic analysis
-        let mut semantic = SemanticAnalysis::new(&mut expr_pool);
+        let mut semantic = SemanticAnalysis::new(&mut pool);
         let result = semantic.analyze_program(program);
 
         // Assert that semantic analysis fails with "invalid lvalue"
@@ -201,13 +224,13 @@ mod tests {
         let tokens = lexer.tokenize().unwrap();
 
         // Set up parser and expression pool
-        let mut expr_pool = ExprPool::new();
-        let mut parser = CParser::new(&mut expr_pool, &tokens);
+        let mut pool = NodesPool::new();
+        let mut parser = CParser::new(&mut pool, &tokens);
 
         // Parse the program
         let program = parser.parse_program().unwrap();
 
-        let mut semantic = SemanticAnalysis::new(&mut expr_pool);
+        let mut semantic = SemanticAnalysis::new(&mut pool);
         let result = semantic.analyze_program(program);
 
         assert!(
