@@ -1,16 +1,21 @@
 use crate::parser::c_ast::{self, BlockItem};
-use crate::parser::c_ast::{CProgram, ExprPool, ExprRef, Statement};
+use crate::parser::c_ast::{CProgram, Statement};
+use crate::parser::nodes_pool::{ExprRef, NodesPool};
 use crate::tacky_ir::tacky_ast;
 use crate::tacky_ir::tacky_ast::*;
 
-pub struct TackyGenerator<'expr> {
-    expr_pool: &'expr ExprPool,
+pub struct TackyGenerator<'pool> {
+    nodes_pool: &'pool NodesPool,
 }
 
-impl<'expr> TackyGenerator<'expr> {
-    pub fn new(expr_pool: &'expr ExprPool) -> Self {
-        log::debug!("expr pool: {:?}", expr_pool);
-        TackyGenerator { expr_pool }
+impl<'pool> TackyGenerator<'pool> {
+    pub fn new(nodes_pool: &'pool NodesPool) -> Self {
+        log::debug!("nodes pool: {:?}", nodes_pool);
+        TackyGenerator { nodes_pool }
+    }
+
+    pub fn nodes_pool(&self) -> &NodesPool {
+        self.nodes_pool
     }
 
     pub fn generate_ir(&self, ast: &CProgram) -> std::io::Result<TackyIR> {
@@ -45,6 +50,7 @@ impl<'expr> TackyGenerator<'expr> {
                         self.emit_tacky(expr_ref, &mut instructions)?;
                     }
                     Statement::Null => {}
+                    Statement::If(_, _, _) => todo!(),
                 },
                 BlockItem::D(declaration) => {
                     if let Some(init) = declaration.initializer() {
@@ -64,7 +70,7 @@ impl<'expr> TackyGenerator<'expr> {
         expr_ref: &ExprRef,
         instructions: &mut Instructions,
     ) -> std::io::Result<Val> {
-        let expr = self.expr_pool.get_expr(expr_ref.id());
+        let expr = self.nodes_pool().expr_pool().get_expr(expr_ref.id());
         match expr {
             c_ast::Expr::Unary(c_ast::UnaryOperator::PrefixIncr, inner_expr_ref) => {
                 // Prefix increment: ++a
@@ -183,10 +189,9 @@ impl<'expr> TackyGenerator<'expr> {
                 instructions.append(Instruction::Label(Identifier::Name(end_label)));
                 Ok(dst)
             }
-            // Handle compound assignments
             c_ast::Expr::Binary(operator, var_ref, rhs) if operator.is_compound_assignment() => {
                 log::debug!("Emitting compound assignment expression: {:?}", expr);
-                let expr = self.expr_pool.get_expr(var_ref.id());
+                let expr = self.nodes_pool().expr_pool().get_expr(var_ref.id());
                 let var = Val::Var(Identifier::Name(expr.var()?));
                 let result = self.emit_tacky(rhs, instructions)?;
                 let bin_op = self.convert_binop(operator);
@@ -212,12 +217,13 @@ impl<'expr> TackyGenerator<'expr> {
             c_ast::Expr::Constant(c) => Ok(Val::Constant(*c)),
             c_ast::Expr::Var(v) => Ok(Val::Var(Identifier::Name(v.name().to_string()))),
             c_ast::Expr::Assignment(var_ref, rhs) => {
-                let expr = self.expr_pool.get_expr(var_ref.id());
+                let expr = self.nodes_pool().expr_pool().get_expr(var_ref.id());
                 let var = Val::Var(Identifier::Name(expr.var()?));
                 let result = self.emit_tacky(rhs, instructions)?;
                 instructions.append(Instruction::Copy(result, var.clone()));
                 Ok(var)
             }
+            c_ast::Expr::Conditional(condition, expr_ref1, expr_ref2) => todo!(),
         }
     }
 

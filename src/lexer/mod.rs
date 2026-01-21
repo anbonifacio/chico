@@ -12,6 +12,8 @@ static CONSTANT: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"[0-9]+\b").unwr
 static INT_KEYWORD: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"int\b").unwrap());
 static VOID_KEYWORD: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"void\b").unwrap());
 static RETURN_KEYWORD: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"return\b").unwrap());
+static IF: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"if\b").unwrap());
+static ELSE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"else\b").unwrap());
 static OPEN_PARENTHESIS: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\(").unwrap());
 static CLOSE_PARENTHESIS: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\)").unwrap());
 static OPEN_BRACE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\{").unwrap());
@@ -50,12 +52,16 @@ static ASSIGN_OR: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\|=").unwrap()
 static ASSIGN_XOR: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\^=").unwrap());
 static ASSIGN_LEFT_SHIFT: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"<<=").unwrap());
 static ASSIGN_RIGHT_SHIFT: LazyLock<Regex> = LazyLock::new(|| Regex::new(r">>=").unwrap());
+static QUESTION_MARK: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\?").unwrap());
+static COLON: LazyLock<Regex> = LazyLock::new(|| Regex::new(r":").unwrap());
 
 static PATTERNS: LazyLock<Vec<(&Regex, TokenType)>> = LazyLock::new(|| {
     vec![
         (&*INT_KEYWORD, TokenType::IntKeyword),
         (&*VOID_KEYWORD, TokenType::VoidKeyword),
         (&*RETURN_KEYWORD, TokenType::ReturnKeyword),
+        (&*IF, TokenType::IfKeyword),
+        (&*ELSE, TokenType::ElseKeyword),
         (&*IDENTIFIER, TokenType::Identifier),
         (&*CONSTANT, TokenType::Constant),
         (&*OPEN_PARENTHESIS, TokenType::OpenParenthesis),
@@ -96,5 +102,7 @@ static PATTERNS: LazyLock<Vec<(&Regex, TokenType)>> = LazyLock::new(|| {
         (&*ASSIGN_XOR, TokenType::AssignXor),
         (&*ASSIGN_LEFT_SHIFT, TokenType::AssignLeftShift),
         (&*ASSIGN_RIGHT_SHIFT, TokenType::AssignRightShift),
+        (&*QUESTION_MARK, TokenType::QuestionMark),
+        (&*COLON, TokenType::Colon),
     ]
 });

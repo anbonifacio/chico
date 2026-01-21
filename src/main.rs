@@ -12,8 +12,8 @@ mod tacky_ir;
 use crate::codegen::codegen_passes::Codegen;
 use crate::emitter::code_emitter::CodeEmitter;
 use crate::lexer::c_lexer::Lexer;
-use crate::parser::c_ast::ExprPool;
 use crate::parser::c_parser::CParser;
+use crate::parser::nodes_pool::NodesPool;
 use crate::semantic_analysis::SemanticAnalysis;
 use crate::tacky_ir::tacky::TackyGenerator;
 
@@ -83,19 +83,19 @@ fn main() -> std::io::Result<()> {
         return Ok(());
     }
 
-    let mut expr_pool = ExprPool::new();
+    let mut nodes_pool = NodesPool::new();
 
-    let mut parser = CParser::new(&mut expr_pool, &tokens);
+    let mut parser = CParser::new(&mut nodes_pool, &tokens);
     let c_program = parser.parse_program()?;
     log::debug!("{}", c_program);
-    log::debug!("Expression Pool: {:?}", expr_pool);
+    log::debug!("Expression Pool: {:?}", nodes_pool.expr_pool());
 
     if stage == Stage::Parse {
         cleanup(&cli, &stage, &preprocessed, &assembled);
         return Ok(());
     }
 
-    let mut semantic_analizer = SemanticAnalysis::new(&mut expr_pool);
+    let mut semantic_analizer = SemanticAnalysis::new(&mut nodes_pool);
     let c_program = semantic_analizer.analyze_program(c_program)?;
     log::debug!("Semantically analyzed program: {}", c_program);
 
@@ -104,7 +104,7 @@ fn main() -> std::io::Result<()> {
         return Ok(());
     }
 
-    let tacky = TackyGenerator::new(&expr_pool);
+    let tacky = TackyGenerator::new(&nodes_pool);
     let tacky_ir = tacky.generate_ir(&c_program)?;
     log::debug!("Generated Tacky IR: {}", tacky_ir);
 

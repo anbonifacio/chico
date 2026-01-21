@@ -1,5 +1,7 @@
 use std::fmt::{Display, Formatter};
 
+use crate::parser::nodes_pool::{ExprRef, ExprType, StatementRef};
+
 #[derive(Debug)]
 pub enum CProgram {
     Program(FunctionDefinition),
@@ -84,6 +86,7 @@ pub enum BlockItem {
 pub enum Statement {
     Return(ExprRef),
     Expression(ExprRef),
+    If(ExprRef, StatementRef, Option<StatementRef>),
     Null,
 }
 
@@ -93,6 +96,7 @@ impl Display for Statement {
             Statement::Return(expr_ref) => write!(f, "Return: {}", expr_ref),
             Statement::Expression(expr_ref) => write!(f, "Expression: {}", expr_ref),
             Statement::Null => write!(f, "Null;"),
+            Statement::If(condition, then_statement, else_statement) => todo!(),
         }
     }
 }
@@ -129,84 +133,6 @@ impl Declaration {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
-pub struct ExprRef {
-    id: u32,
-    expr_type: ExprType,
-}
-
-impl ExprRef {
-    pub fn new(id: u32, expr_type: ExprType) -> Self {
-        ExprRef { id, expr_type }
-    }
-
-    pub fn id(&self) -> u32 {
-        self.id
-    }
-
-    pub fn expr_type(&self) -> ExprType {
-        self.expr_type
-    }
-}
-
-impl Display for ExprRef {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "ExprRef[{}: {:?}]", self.id, self.expr_type)
-    }
-}
-
-#[derive(Debug)]
-pub struct ExprPool(Vec<Expr>);
-
-impl ExprPool {
-    pub fn new() -> Self {
-        ExprPool(Vec::new())
-    }
-
-    #[cfg(test)]
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn get_expr(&self, id: u32) -> &Expr {
-        &self.0[id as usize]
-    }
-
-    pub fn add_expr(&mut self, expr: Expr) -> ExprRef {
-        let id = self.0.len() as u32;
-        self.0.push(expr.clone());
-        ExprRef {
-            id,
-            expr_type: expr.get_type(),
-        }
-    }
-
-    pub fn update_expr(&mut self, id: &ExprRef, expr: Expr) {
-        self.0[id.id as usize] = expr;
-    }
-
-    pub(crate) fn last_expr(&self) -> std::io::Result<ExprRef> {
-        match self.0.iter().enumerate().next_back() {
-            Some((idx, expr)) => Ok(ExprRef {
-                id: idx as u32,
-                expr_type: expr.get_type(),
-            }),
-            None => Err(std::io::Error::other(
-                "Expression pool is empty, cannot get last expression",
-            )),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum ExprType {
-    Constant,
-    Var,
-    Unary(UnaryOperator),
-    Binary(BinaryOperator),
-    Assignment,
-}
-
 #[derive(Debug, Clone)]
 pub enum Expr {
     Constant(i32),
@@ -214,6 +140,7 @@ pub enum Expr {
     Unary(UnaryOperator, ExprRef),
     Binary(BinaryOperator, ExprRef, ExprRef),
     Assignment(ExprRef, ExprRef),
+    Conditional(ExprRef, ExprRef, ExprRef),
 }
 
 impl Expr {
@@ -235,6 +162,7 @@ impl Expr {
             Expr::Unary(op, _) => ExprType::Unary(*op),
             Expr::Binary(op, _, _) => ExprType::Binary(*op),
             Expr::Assignment(_, _) => ExprType::Assignment,
+            Expr::Conditional(_, _, _) => ExprType::Conditional,
         }
     }
 }
@@ -247,6 +175,9 @@ impl Display for Expr {
             Expr::Binary(op, left, right) => write!(f, "({} {} {})", left, op, right),
             Expr::Var(identifier) => write!(f, "{}", identifier.name()),
             Expr::Assignment(lvalue, rvalue) => write!(f, "{} = {}", lvalue, rvalue),
+            Expr::Conditional(condition, expr_ref1, expr_ref2) => {
+                write!(f, "{} ? {} : {}", condition, expr_ref1, expr_ref2)
+            }
         }
     }
 }

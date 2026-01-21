@@ -61,7 +61,7 @@ impl<R: BufRead> Lexer<R> {
 }
 
 fn find_match(line: &str, position: usize) -> Option<Token> {
-    log::debug!("Finding match at position {} for line '{}'", position, line);
+    log::trace!("Finding match at position {} for line '{}'", position, line);
     if position >= line.len() {
         return None;
     }

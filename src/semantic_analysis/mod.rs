@@ -1,17 +1,20 @@
 use crate::{
-    parser::c_ast::{BlockItem, CProgram, ExprPool},
+    parser::{
+        c_ast::{BlockItem, CProgram},
+        nodes_pool::NodesPool,
+    },
     semantic_analysis::variable_resolution::VariableResolver,
 };
 
 mod variable_resolution;
 
-pub struct SemanticAnalysis<'expr> {
-    variable_resolver: VariableResolver<'expr>,
+pub struct SemanticAnalysis<'pool> {
+    variable_resolver: VariableResolver<'pool>,
 }
 
-impl<'expr> SemanticAnalysis<'expr> {
-    pub fn new(expr_pool: &'expr mut ExprPool) -> Self {
-        let variable_resolver = VariableResolver::new(expr_pool);
+impl<'pool> SemanticAnalysis<'pool> {
+    pub fn new(nodes_pool: &'pool mut NodesPool) -> Self {
+        let variable_resolver = VariableResolver::new(nodes_pool);
         Self { variable_resolver }
     }
 
